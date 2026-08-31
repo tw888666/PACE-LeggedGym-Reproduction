@@ -40,6 +40,7 @@ conda run -n bruce_gym env PYTHONPATH=src python -m pace_stage0.cli frame_forens
 conda run -n bruce_gym env PYTHONPATH=src python -m pace_stage0.cli replay_fit
 conda run -n bruce_gym env PYTHONPATH=src python -m pace_stage0.cli residual_diagnostics
 conda run -n bruce_gym env PYTHONPATH=src python -m pace_stage0.cli joint_order_diagnostics
+conda run -n bruce_gym env PYTHONPATH=src python -m pace_stage0.cli torque_semantics
 ```
 
 `frame_forensics` is read-only: it computes H0/H+/H- frame diagnostics and writes
@@ -80,3 +81,8 @@ position. Its alternate configuration is diagnostic only and cannot select a new
 leg-block bias permutations, the target-position channel signature, and the RF/LH
 parameter-assignment risk. It does not modify `decoder.py`, `data.py`, the actuator,
 or the formal Stage 0C baseline.
+
+`torque_semantics` is also dataset-only. It enumerates the frozen 18 bias/frame
+candidates, pre/post-delay timing, torque-only lag, P/PD, DCMotor clipping, and
+velocity/Coulomb residual signatures. It never runs Isaac Gym or changes the formal
+actuator/replay implementation.

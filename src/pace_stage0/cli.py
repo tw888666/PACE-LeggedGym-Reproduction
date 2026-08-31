@@ -59,6 +59,12 @@ def _parser() -> argparse.ArgumentParser:
         help="Run read-only Stage 0C data.npy joint-order diagnostics",
     )
     joint_order.add_argument("--output-dir", type=Path)
+
+    torque_semantics = sub.add_parser(
+        "torque_semantics",
+        help="Run dataset-only Stage 0C sim_method.dof_torques forensic",
+    )
+    torque_semantics.add_argument("--output-dir", type=Path)
     return parser
 
 
@@ -132,6 +138,13 @@ def main(argv=None) -> int:
         from .joint_order_diagnostics import run_joint_order_diagnostics
 
         report = run_joint_order_diagnostics(output_dir=args.output_dir)
+        print(json.dumps(report, indent=2))
+        return 0
+
+    if args.command == "torque_semantics":
+        from .torque_semantics import run_torque_semantics
+
+        report = run_torque_semantics(output_dir=args.output_dir)
         print(json.dumps(report, indent=2))
         return 0
     raise AssertionError(f"Unhandled command: {args.command}")

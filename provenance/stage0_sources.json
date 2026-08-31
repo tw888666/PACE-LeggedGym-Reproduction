@@ -75,6 +75,24 @@
     "formal_data_loader_change": false,
     "automatic_order_selection": false
   },
+  "legacy_sim_method_torque_semantics": {
+    "most_likely_class": "E_post_delay_applied_like_with_C_equivalent_frame_term",
+    "identified_formula": "full_PD - Kp * raw_bias, then 3-step FIFO, recorded at the following state boundary",
+    "identifiable_frame_term": "alpha - beta = -1",
+    "non_identifiable_alternatives": [
+      "alpha=-1,beta=0: target shifted by -bias",
+      "alpha=0,beta=+1: state shifted by +bias"
+    ],
+    "best_alignment": "sim_method.dof_torques[k] vs post_delay3[k-1]",
+    "best_rmse_Nm": 0.009035969986880686,
+    "best_correlation": 0.9999998343862391,
+    "effective_bias_centered_residual_rms_Nm": 0.0000016741375979405963,
+    "provenance": "artifact_identified_strong_inference",
+    "legacy_exporter_implementation": "UNAVAILABLE / unresolved",
+    "branch_A_closed": false,
+    "asset_plant_audit_authorized": false,
+    "formal_actuator_change": false
+  },
   "energy_ratio": {
     "value": 0.0192,
     "provenance": "user_supplied_from_prior_dataset_audit",
