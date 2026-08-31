@@ -3,6 +3,7 @@ import unittest
 import numpy as np
 
 from pace_stage0.metrics import lag_rmse, per_joint_rmse, rmse
+from pace_stage0.replay import _interval_state_torque_lag_metrics
 from pace_stage0.sampling import run_indexed_replay
 
 
@@ -37,7 +38,13 @@ class TestMetrics(unittest.TestCase):
         ours = np.concatenate([ours, [[99.0]]], axis=0)
         self.assertEqual(lag_rmse(ours, reference, 1), 0.0)
 
+    def test_interval_state_torque_lag_convention(self):
+        interval = np.arange(5.0)[:, None]
+        state = np.concatenate([np.asarray([[-1.0]]), interval], axis=0)
+        result = _interval_state_torque_lag_metrics(interval, state, radius=2)
+        self.assertEqual(result["1"]["rmse"], 0.0)
+        self.assertAlmostEqual(result["1"]["correlation"], 1.0)
+
 
 if __name__ == "__main__":
     unittest.main()
-

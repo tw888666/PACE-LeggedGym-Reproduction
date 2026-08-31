@@ -25,10 +25,21 @@ from .metrics import lag_sweep, per_joint_rmse, rmse
 from .sampling import run_indexed_replay
 
 
-class FrameSanityError(RuntimeError):
-    def __init__(self, message: str, artifact_dir: Path):
-        super().__init__(message)
-        self.artifact_dir = artifact_dir
+LEGACY_SIM_METHOD_FRAME = {
+    "legacy_exporter_implementation": "UNAVAILABLE / provenance unresolved",
+    "semantic_frame": "bias-corrected comparison frame",
+    "provenance": "strong_inference",
+    "confidence": "high",
+    "basis": (
+        "Joint conclusion from the paper, later official collector/CMA-ES/plotting "
+        "semantics, official dataset usage, and legacy H0/H+/H- forensics. The legacy "
+        "exporter source remains unavailable."
+    ),
+    "upgrade_condition": (
+        "Upgrade provenance to author_confirmed only after an explicit author statement."
+    ),
+    "automatic_frame_selection": False,
+}
 
 
 def _jsonable(value: Any) -> Any:
@@ -61,23 +72,30 @@ def _new_artifact_dir(output_dir: Optional[Path]) -> Path:
 
 
 def _frame_sanity(data: ReplayData, fit: DecodedFit) -> Dict[str, Any]:
-    raw = rmse(data.sim_method_dof_pos, data.real_dof_pos)
-    encoder = rmse(
+    h0 = rmse(data.sim_method_dof_pos, data.real_dof_pos)
+    hplus = rmse(
         data.sim_method_dof_pos - fit.encoder_bias[None, :], data.real_dof_pos
     )
+    hminus = rmse(
+        data.sim_method_dof_pos + fit.encoder_bias[None, :], data.real_dof_pos
+    )
     return {
-        "rmse_sim_method_true_vs_real": raw,
-        "rmse_sim_method_minus_bias_vs_real": encoder,
-        "state0_rmse_sim_method_vs_real": rmse(
+        "h0_rmse_sim_method_vs_real": h0,
+        "hplus_rmse_sim_method_minus_bias_vs_real": hplus,
+        "hminus_rmse_sim_method_plus_bias_vs_real": hminus,
+        "h0_state0_rmse_sim_method_vs_real": rmse(
             data.sim_method_dof_pos[0], data.real_dof_pos[0]
         ),
-        "state0_rmse_sim_method_vs_real_plus_bias": rmse(
+        "hplus_state0_rmse_sim_method_vs_real_plus_bias": rmse(
             data.sim_method_dof_pos[0], data.real_dof_pos[0] + fit.encoder_bias
         ),
-        "state0_max_abs_sim_method_minus_real": float(
+        "hminus_state0_rmse_sim_method_vs_real_minus_bias": rmse(
+            data.sim_method_dof_pos[0], data.real_dof_pos[0] - fit.encoder_bias
+        ),
+        "h0_state0_max_abs_sim_method_minus_real": float(
             np.max(np.abs(data.sim_method_dof_pos[0] - data.real_dof_pos[0]))
         ),
-        "state0_max_abs_sim_method_minus_real_plus_bias": float(
+        "hplus_state0_max_abs_sim_method_minus_real_plus_bias": float(
             np.max(
                 np.abs(
                     data.sim_method_dof_pos[0]
@@ -85,16 +103,69 @@ def _frame_sanity(data: ReplayData, fit: DecodedFit) -> Dict[str, Any]:
                 )
             )
         ),
-        "encoder_frame_lower_than_raw": encoder < raw,
-        "ratio_encoder_over_raw": encoder / raw if raw > 0 else None,
+        "hplus_lower_than_h0": hplus < h0,
+        "ratio_hplus_over_h0": hplus / h0 if h0 > 0 else None,
         "policy": (
-            "Diagnostic only; never auto-select a frame. The frozen preflight expects the "
-            "bias-corrected metric to be lower."
+            "Diagnostic only; never auto-select a frame. The frozen engineering assumption "
+            "treats released sim_method.dof_pos as an already bias-corrected comparison frame."
         ),
     }
 
 
-def _make_sim(device_id: int, fit: DecodedFit):
+def _formal_replication_metrics(
+    q_true_ours: np.ndarray,
+    sim_method_dof_pos: np.ndarray,
+    encoder_bias: np.ndarray,
+) -> Dict[str, Any]:
+    """Compute the frozen Stage 0C metric in the encoder/comparison frame."""
+    q_encoder_ours = (
+        np.asarray(q_true_ours, dtype=np.float64)
+        - np.asarray(encoder_bias, dtype=np.float64)[None, :]
+    )
+    reference = np.asarray(sim_method_dof_pos, dtype=np.float64)
+    return {
+        "q_encoder_ours": q_encoder_ours,
+        "overall_rmse": rmse(q_encoder_ours, reference),
+        "per_joint_rmse": per_joint_rmse(q_encoder_ours, reference),
+    }
+
+
+def _interval_state_torque_lag_metrics(
+    interval_torque: np.ndarray,
+    state_torque: np.ndarray,
+    radius: int = 4,
+) -> Dict[str, Dict[str, float]]:
+    """Compare interval[t] with logged state_torque[t+lag] on common indices."""
+    interval_torque = np.asarray(interval_torque, dtype=np.float64)
+    state_torque = np.asarray(state_torque, dtype=np.float64)
+    if interval_torque.ndim != 2 or state_torque.ndim != 2:
+        raise ValueError("Torque traces must be [time,joint] arrays")
+    if interval_torque.shape[1] != state_torque.shape[1]:
+        raise ValueError("Torque traces have different joint counts")
+    result: Dict[str, Dict[str, float]] = {}
+    for lag in range(-radius, radius + 1):
+        interval_start = max(0, -lag)
+        state_start = max(0, lag)
+        count = min(
+            len(interval_torque) - interval_start,
+            len(state_torque) - state_start,
+        )
+        ours = interval_torque[interval_start:interval_start + count]
+        logged = state_torque[state_start:state_start + count]
+        correlation = float(np.corrcoef(ours.reshape(-1), logged.reshape(-1))[0, 1])
+        result[str(lag)] = {
+            "rmse": rmse(ours, logged),
+            "correlation": correlation,
+        }
+    return result
+
+
+def _make_sim(
+    device_id: int,
+    fit: DecodedFit,
+    *,
+    self_collisions: bool = False,
+):
     # Import order is intentional for Isaac Gym Preview 4.
     from isaacgym import gymapi, gymtorch
     import torch
@@ -158,7 +229,13 @@ def _make_sim(device_id: int, fit: DecodedFit):
         )
         pose = gymapi.Transform()
         pose.p.z = 1.0
-        actor = gym.create_actor(env, asset, pose, "anymal_d", 0, 0)
+        # Within one collision group, shapes collide only when their filter bitmasks
+        # have no common bit. Filter 0 enables the read-only self-collision diagnostic;
+        # filter 1 disables self-collision for the frozen contact-free replay.
+        actor_collision_filter = 0 if self_collisions else 1
+        actor = gym.create_actor(
+            env, asset, pose, "anymal_d", 0, actor_collision_filter
+        )
         gym.set_actor_dof_properties(env, actor, props)
         gym.prepare_sim(sim)
 
@@ -188,6 +265,9 @@ def _make_sim(device_id: int, fit: DecodedFit):
             "sim_effort_limit": applied_props["effort"].tolist(),
             "sim_velocity_limit": applied_props["velocity"].tolist(),
             "device": str(torch.device(f"cuda:{device_id}")),
+            "self_collisions": self_collisions,
+            "actor_collision_filter": actor_collision_filter,
+            "initial_state_write_api": "set_dof_state_tensor (GPU pipeline)",
         }
         if not settings["drive_mode_effort"]:
             raise RuntimeError("Isaac Gym actor is not in DOF_MODE_EFFORT")
@@ -213,7 +293,6 @@ def _make_sim(device_id: int, fit: DecodedFit):
 def replay_fit(
     device_id: int = 0,
     output_dir: Optional[Path] = None,
-    acknowledge_frame_sanity_failure: bool = False,
 ) -> Dict[str, Any]:
     # Isaac Gym must be imported before decoder unpickling imports torch.
     from isaacgym import gymapi  # noqa: F401
@@ -229,9 +308,11 @@ def replay_fit(
     artifact_dir = _new_artifact_dir(output_dir)
     fit = decode_fit()
     data = load_replay_data()
+    q_true_0_np = data.real_dof_pos[0] + fit.encoder_bias
+    qdot_0_np = np.zeros_like(data.real_dof_pos[0])
     sanity = _frame_sanity(data, fit)
     preflight = {
-        "schema": "pace_stage0.replay_preflight.v1",
+        "schema": "pace_stage0.replay_preflight.v2",
         "fit": fit.to_dict(),
         "data": {
             "source": str(Path("/home/xy.chen/tw/dataset/pace_data/1_in_air/anymal/data.npy")),
@@ -247,15 +328,11 @@ def replay_fit(
             "real_dof_vel_0_minus_baseline": data.real_dof_vel[0],
             "delay_fifo": "zeros",
         },
-        "frame_sanity": sanity,
+        "legacy_sim_method_frame": LEGACY_SIM_METHOD_FRAME,
+        "frame_evidence": sanity,
+        "stage0C_authorized": True,
     }
     _write_json(artifact_dir / "preflight.json", preflight)
-    if not sanity["encoder_frame_lower_than_raw"] and not acknowledge_frame_sanity_failure:
-        raise FrameSanityError(
-            "Frame sanity check failed: RMSE(sim_method-bias, real) is not lower than "
-            "RMSE(sim_method, real). No frame was changed; replay stopped for manual review.",
-            artifact_dir,
-        )
 
     (
         gymapi_mod,
@@ -272,17 +349,16 @@ def replay_fit(
     try:
         device = dof_state.device
         bias = torch.as_tensor(fit.encoder_bias, dtype=torch.float32, device=device)
-        q_true_0 = torch.as_tensor(
-            data.real_dof_pos[0] + fit.encoder_bias, dtype=torch.float32, device=device
-        )
+        q_true_0 = torch.as_tensor(q_true_0_np, dtype=torch.float32, device=device)
         qdot_0 = torch.zeros_like(q_true_0)
         gather = torch.as_tensor(gather_indices, dtype=torch.long, device=device)
 
-        initial_state = np.zeros(12, dtype=gymapi_mod.DofState.dtype)
-        initial_state["pos"][np.asarray(gather_indices)] = q_true_0.cpu().numpy()
-        initial_state["vel"] = 0.0
-        if not gym.set_actor_dof_states(env, actor, initial_state, gymapi_mod.STATE_ALL):
-            raise RuntimeError("gym.set_actor_dof_states failed")
+        # GPU pipeline state writes after prepare_sim must use the tensor API.
+        dof_state[:, 0].zero_()
+        dof_state[:, 1].zero_()
+        dof_state[gather, 0] = q_true_0
+        if not gym.set_dof_state_tensor(sim, gymtorch.unwrap_tensor(dof_state)):
+            raise RuntimeError("gym.set_dof_state_tensor failed")
         gym.refresh_dof_state_tensor(sim)
         initial_sim_q = dof_state[gather, 0].clone()
         initial_sim_qdot = dof_state[gather, 1].clone()
@@ -340,7 +416,10 @@ def replay_fit(
     q_true = sampled.q_true.astype(np.float64)
     qdot = sampled.qdot.astype(np.float64)
     q_encoder = q_true - fit.encoder_bias[None, :]
-    sim_method_encoder = data.sim_method_dof_pos.astype(np.float64) - fit.encoder_bias[None, :]
+    sim_method_comparison = data.sim_method_dof_pos.astype(np.float64)
+    sim_method_minus_bias_diagnostic = (
+        sim_method_comparison - fit.encoder_bias[None, :]
+    )
     interval = {
         name: np.stack([record[name] for record in sampled.interval_records], axis=0)
         for name in (
@@ -352,38 +431,148 @@ def replay_fit(
         )
     }
 
-    overall_replication = rmse(q_true, data.sim_method_dof_pos)
-    per_joint = per_joint_rmse(q_true, data.sim_method_dof_pos)
+    replication = _formal_replication_metrics(
+        q_true, data.sim_method_dof_pos, fit.encoder_bias
+    )
+    overall_replication = replication["overall_rmse"]
+    per_joint = replication["per_joint_rmse"]
     ours_real_encoder = rmse(q_encoder, data.real_dof_pos)
-    sim_method_real_encoder = rmse(sim_method_encoder, data.real_dof_pos)
+    sim_method_real_comparison = rmse(sim_method_comparison, data.real_dof_pos)
     sim_nothing_real = rmse(data.sim_nothing_dof_pos, data.real_dof_pos)
     gates = {
-        "overall_replication_le_0p01": overall_replication <= 0.01,
-        "all_per_joint_replication_le_0p02": bool(np.all(per_joint <= 0.02)),
-        "encoder_fit_le_1p2x_author": ours_real_encoder <= 1.2 * sim_method_real_encoder,
+        "overall_encoder_replication_le_0p01": overall_replication <= 0.01,
+        "all_per_joint_encoder_replication_le_0p02": bool(np.all(per_joint <= 0.02)),
+        "encoder_fit_le_1p2x_author": (
+            ours_real_encoder <= 1.2 * sim_method_real_comparison
+        ),
         "encoder_fit_better_than_sim_nothing": ours_real_encoder < sim_nothing_real,
     }
+    formal_error = q_encoder - sim_method_comparison
+    delay_steps = fit.delay_steps
+    if delay_steps > 0:
+        fifo_initial_max = float(np.max(np.abs(interval["applied_torque"][:delay_steps])))
+        fifo_identity_max = float(
+            np.max(
+                np.abs(
+                    interval["applied_torque"][delay_steps:]
+                    - interval["saturated_torque"][:-delay_steps]
+                )
+            )
+        )
+    else:
+        fifo_initial_max = 0.0
+        fifo_identity_max = float(
+            np.max(
+                np.abs(
+                    interval["applied_torque"] - interval["saturated_torque"]
+                )
+            )
+        )
+    torque_lags = _interval_state_torque_lag_metrics(
+        interval["applied_torque"], data.sim_method_dof_torques
+    )
+    best_torque_lag = min(torque_lags, key=lambda key: torque_lags[key]["rmse"])
+    saturation_changed = np.abs(
+        interval["raw_pd_torque"] - interval["saturated_torque"]
+    ) > 1e-6
+    trace_diagnostic = {
+        "fifo": {
+            "delay_steps": delay_steps,
+            "initial_delayed_output_max_abs": fifo_initial_max,
+            "identity_max_abs_applied_t_vs_saturated_t_minus_delay": fifo_identity_max,
+            "pass": fifo_initial_max == 0.0 and fifo_identity_max == 0.0,
+        },
+        "dc_motor_saturation": {
+            "changed_element_count": int(np.count_nonzero(saturation_changed)),
+            "element_count": int(saturation_changed.size),
+            "changed_fraction": float(np.mean(saturation_changed)),
+            "interpretation": "No saturation event means the motor envelope is inactive here.",
+        },
+        "author_logged_torque": {
+            "lag_convention": "ours interval[t] vs sim_method.dof_torques[t+lag]",
+            "lag_metrics": torque_lags,
+            "best_lag": int(best_torque_lag),
+            "best_rmse": torque_lags[best_torque_lag]["rmse"],
+            "best_correlation": torque_lags[best_torque_lag]["correlation"],
+            "note": (
+                "The dataset torque field is state-logged and may include implicit generalized "
+                "forces; position replication remains the formal metric."
+            ),
+        },
+        "position_error_growth": {
+            "first_20_state_rmse": [
+                float(np.sqrt(np.mean(np.square(formal_error[index]), dtype=np.float64)))
+                for index in range(min(20, len(formal_error)))
+            ],
+            "window_rmse": {
+                "states_0_10": rmse(q_encoder[:10], sim_method_comparison[:10]),
+                "states_0_100": rmse(q_encoder[:100], sim_method_comparison[:100]),
+                "states_100_end": rmse(q_encoder[100:], sim_method_comparison[100:]),
+                "states_0_1000": rmse(q_encoder[:1000], sim_method_comparison[:1000]),
+                "states_1000_3000": rmse(
+                    q_encoder[1000:3000], sim_method_comparison[1000:3000]
+                ),
+                "states_3000_end": rmse(
+                    q_encoder[3000:], sim_method_comparison[3000:]
+                ),
+            },
+            "per_joint_mean_error": dict(
+                zip(CANONICAL_JOINT_NAMES, np.mean(formal_error, axis=0).tolist())
+            ),
+            "per_joint_max_absolute_error": dict(
+                zip(
+                    CANONICAL_JOINT_NAMES,
+                    np.max(np.abs(formal_error), axis=0).tolist(),
+                )
+            ),
+        },
+        "failure_triage": (
+            "The residual is not explained by frame selection, a ±4-step position lag, FIFO "
+            "implementation, or DCMotor saturation. Review the exact legacy asset/inertial data "
+            "and Isaac Gym PhysX configuration, focusing on RF_HFE and LH_HFE."
+        ),
+    }
     metrics = {
-        "schema": "pace_stage0.replay_metrics.v1",
+        "schema": "pace_stage0.replay_metrics.v2",
+        "legacy_sim_method_frame": LEGACY_SIM_METHOD_FRAME,
         "formal": {
-            "rmse_q_true_ours_vs_sim_method": overall_replication,
-            "per_joint_rmse_q_true_ours_vs_sim_method": dict(
+            "comparison": "q_encoder_ours[k] vs sim_method.dof_pos[k], zero lag",
+            "rmse_q_encoder_ours_vs_sim_method": overall_replication,
+            "per_joint_rmse_q_encoder_ours_vs_sim_method": dict(
                 zip(CANONICAL_JOINT_NAMES, per_joint.tolist())
             ),
             "rmse_q_encoder_ours_vs_real": ours_real_encoder,
-            "rmse_sim_method_minus_bias_vs_real": sim_method_real_encoder,
+            "rmse_sim_method_vs_real_comparison_frame": sim_method_real_comparison,
             "rmse_sim_nothing_vs_real": sim_nothing_real,
         },
         "diagnostic": {
             "rmse_q_true_ours_vs_real": rmse(q_true, data.real_dof_pos),
-            "rmse_q_encoder_ours_vs_sim_method": rmse(q_encoder, data.sim_method_dof_pos),
+            "rmse_q_true_ours_vs_sim_method": rmse(q_true, data.sim_method_dof_pos),
+            "per_joint_rmse_q_true_ours_vs_sim_method": dict(
+                zip(
+                    CANONICAL_JOINT_NAMES,
+                    per_joint_rmse(q_true, data.sim_method_dof_pos).tolist(),
+                )
+            ),
             "rmse_sim_method_vs_real_raw": rmse(data.sim_method_dof_pos, data.real_dof_pos),
+            "rmse_sim_method_minus_bias_vs_real": rmse(
+                sim_method_minus_bias_diagnostic, data.real_dof_pos
+            ),
             "lag_convention": "ours[k] vs reference[k+lag] over common indices",
+            "lag_rmse_q_encoder_ours_vs_sim_method": lag_sweep(
+                q_encoder, data.sim_method_dof_pos
+            ),
             "lag_rmse_q_true_ours_vs_sim_method": lag_sweep(q_true, data.sim_method_dof_pos),
+            "trace": trace_diagnostic,
         },
         "gates": gates,
         "pass": all(gates.values()),
-        "frame_sanity": sanity,
+        "stage0_status": {
+            "Stage_0A": "PASS",
+            "Stage_0B": "ACCEPTED — strong_inference/high engineering frame",
+            "Stage_0C": "PASS" if all(gates.values()) else "FAIL — remain in Stage 0",
+        },
+        "frame_evidence": sanity,
     }
 
     first_rows = []
@@ -394,7 +583,7 @@ def replay_fit(
             "q_encoder": q_encoder[k],
             "qdot": qdot[k],
             "sim_method_dof_pos": data.sim_method_dof_pos[k],
-            "sim_method_dof_pos_minus_bias": sim_method_encoder[k],
+            "sim_method_dof_pos_minus_bias_diagnostic": sim_method_minus_bias_diagnostic[k],
             "real_dof_pos": data.real_dof_pos[k],
             "sim_nothing_dof_pos": data.sim_nothing_dof_pos[k],
         }
@@ -411,7 +600,7 @@ def replay_fit(
         first_rows.append(row)
 
     config = {
-        "schema": "pace_stage0.replay_config.v1",
+        "schema": "pace_stage0.replay_config.v2",
         "fit": fit.to_dict(),
         "simulation": sim_settings,
         "sampling": {
@@ -420,9 +609,11 @@ def replay_fit(
             "state_t_plus_1": "post-simulate state",
             "state_array_length": data.sample_count,
             "interval_array_length": data.sample_count - 1,
+            "initial_state_write_api": "set_dof_state_tensor (GPU pipeline)",
         },
         "random_seed": 0,
-        "frame_sanity_failure_acknowledged": acknowledge_frame_sanity_failure,
+        "legacy_sim_method_frame": LEGACY_SIM_METHOD_FRAME,
+        "frame_acknowledgement_flag_used": False,
     }
     _write_json(artifact_dir / "config.json", config)
     _write_json(artifact_dir / "metrics.json", metrics)

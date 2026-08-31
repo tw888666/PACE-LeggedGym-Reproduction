@@ -19,6 +19,62 @@
     "path": "/home/xy.chen/tw/dataset/pace_data/1_in_air/anymal/data.npy",
     "sha256": "edf2e7648602802c87bbe52bb5c098c41553e8c683b2d9013d6f3f4df8bca621"
   },
+  "legacy_sim_method_frame": {
+    "legacy_exporter_implementation": "UNAVAILABLE / provenance unresolved",
+    "semantic_frame": "bias-corrected comparison frame",
+    "provenance": "strong_inference",
+    "confidence": "high",
+    "basis": "paper + later official implementation + official dataset usage + legacy forensic",
+    "formal_stage0C_comparison": "q_encoder_ours vs sim_method.dof_pos at zero lag",
+    "automatic_frame_selection": false,
+    "upgrade_condition": "explicit author confirmation"
+  },
+  "legacy_fitting_layout": {
+    "decoded_blocks": [
+      "friction[0:12]",
+      "damping[12:24]",
+      "armature[24:36]",
+      "encoder_bias[36:48]",
+      "delay[48]"
+    ],
+    "provenance": "artifact_and_paper_crosscheck",
+    "confidence": "high",
+    "legacy_serializer_implementation": "UNAVAILABLE / provenance unresolved",
+    "evidence": {
+      "bounds": "blocks 0:12 and 24:36 both use [0, 0.5], 12:24 uses [0, 6], 36:48 uses [-0.1, 0.1], and delay uses [0, 7]",
+      "paper_table_6": "decoded legacy order agrees with the rounded ANYmal friction, damping, armature, encoder-bias, and delay values; the later-public-code counterfactual does not"
+    },
+    "automatic_layout_selection": false
+  },
+  "sysid_self_collision": {
+    "formal_stage0C_setting": "disabled",
+    "formal_setting_status": "provisional / legacy implementation evidence pending",
+    "legacy_implementation": "UNAVAILABLE / provenance unresolved",
+    "paper_method_evidence": "PACE system identification motions avoid all contacts, including inter-leg contacts",
+    "later_public_implementation_evidence": "The later PACE Isaac Lab ANYmal configuration imports an asset configuration whose current source enables self-collisions, but this does not establish the legacy Isaac Gym setting",
+    "diagnostic_ab_only": true,
+    "automatic_setting_selection": false
+  },
+  "legacy_data_joint_order": {
+    "most_likely_order": [
+      "LF_HAA", "LF_HFE", "LF_KFE",
+      "RF_HAA", "RF_HFE", "RF_KFE",
+      "LH_HAA", "LH_HFE", "LH_KFE",
+      "RH_HAA", "RH_HFE", "RH_KFE"
+    ],
+    "provenance": "strong_inference",
+    "confidence": "high",
+    "machine_readable_joint_names_in_data_npy": false,
+    "evidence": {
+      "command_center_triplets": "front, front, hind, hind",
+      "stored_field_alignment": "same-index target/real/sim_method alignment is strong; an isolated RF/LH swap destroys it",
+      "paper_table_6": "published parameter labels use LF RF LH RH"
+    },
+    "conflicting_torque_evidence": "The constant author-state torque delta uniquely matches 85 times the LF LH RF RH raw bias vector, but H1-H4 torque algebra is order-invariant under the frozen comparison frame; causal interpretation remains unresolved",
+    "formal_decoder_change": false,
+    "formal_data_loader_change": false,
+    "automatic_order_selection": false
+  },
   "energy_ratio": {
     "value": 0.0192,
     "provenance": "user_supplied_from_prior_dataset_audit",

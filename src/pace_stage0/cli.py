@@ -2,7 +2,6 @@ from __future__ import annotations
 
 import argparse
 import json
-import sys
 import unittest
 from pathlib import Path
 
@@ -29,14 +28,37 @@ def _parser() -> argparse.ArgumentParser:
         "--output", type=Path, default=PROJECT_ROOT / "artifacts" / "actuator_unit.json"
     )
 
+    forensic = sub.add_parser(
+        "frame_forensics",
+        help="Run read-only legacy data frame analysis without Isaac Gym replay",
+    )
+    forensic.add_argument(
+        "--json-output",
+        type=Path,
+        default=PROJECT_ROOT / "artifacts" / "frame_forensics.json",
+    )
+    forensic.add_argument(
+        "--markdown-output",
+        type=Path,
+        default=PROJECT_ROOT / "artifacts" / "frame_forensics.md",
+    )
+
     replay = sub.add_parser("replay_fit", help="Run the full absolute-target Isaac Gym replay")
     replay.add_argument("--device-id", type=int, default=0)
     replay.add_argument("--output-dir", type=Path)
-    replay.add_argument(
-        "--acknowledge-frame-sanity-failure",
-        action="store_true",
-        help="Continue without changing frames after manually reviewing a failed frame sanity preflight",
+
+    residual = sub.add_parser(
+        "residual_diagnostics",
+        help="Run frozen Stage 0C residual localization and self-collision A/B",
     )
+    residual.add_argument("--device-id", type=int, default=0)
+    residual.add_argument("--output-dir", type=Path)
+
+    joint_order = sub.add_parser(
+        "joint_order_diagnostics",
+        help="Run read-only Stage 0C data.npy joint-order diagnostics",
+    )
+    joint_order.add_argument("--output-dir", type=Path)
     return parser
 
 
@@ -81,22 +103,37 @@ def main(argv=None) -> int:
         return 0
     if args.command == "actuator_unit":
         return 0 if _actuator_unit(args.output) else 1
+    if args.command == "frame_forensics":
+        from .frame_forensics import write_frame_forensics
+
+        report = write_frame_forensics(args.json_output, args.markdown_output)
+        print(json.dumps(report, indent=2))
+        print(f"wrote: {args.json_output.resolve()}")
+        print(f"wrote: {args.markdown_output.resolve()}")
+        return 0
     if args.command == "replay_fit":
         # Importing replay lazily preserves the Isaac Gym-before-torch requirement.
-        from .replay import FrameSanityError, replay_fit
+        from .replay import replay_fit
 
-        try:
-            report = replay_fit(
-                device_id=args.device_id,
-                output_dir=args.output_dir,
-                acknowledge_frame_sanity_failure=args.acknowledge_frame_sanity_failure,
-            )
-        except FrameSanityError as exc:
-            print(f"FRAME_SANITY_BLOCKED: {exc}", file=sys.stderr)
-            print(f"preflight artifacts: {exc.artifact_dir}", file=sys.stderr)
-            return 2
+        report = replay_fit(device_id=args.device_id, output_dir=args.output_dir)
         print(json.dumps(report, indent=2))
         return 0 if report["pass"] else 1
+
+    if args.command == "residual_diagnostics":
+        from .residual_diagnostics import run_residual_diagnostics
+
+        report = run_residual_diagnostics(
+            device_id=args.device_id, output_dir=args.output_dir
+        )
+        print(json.dumps(report, indent=2))
+        return 0
+
+    if args.command == "joint_order_diagnostics":
+        from .joint_order_diagnostics import run_joint_order_diagnostics
+
+        report = run_joint_order_diagnostics(output_dir=args.output_dir)
+        print(json.dumps(report, indent=2))
+        return 0
     raise AssertionError(f"Unhandled command: {args.command}")
 
 
