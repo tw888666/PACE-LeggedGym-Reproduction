@@ -43,6 +43,7 @@ conda run -n bruce_gym env PYTHONPATH=src python -m pace_stage0.cli joint_order_
 conda run -n bruce_gym env PYTHONPATH=src python -m pace_stage0.cli torque_semantics
 conda run -n bruce_gym env PYTHONPATH=src python -m pace_stage0.cli fit_order_diagnostics
 conda run -n bruce_gym env PYTHONPATH=src python -m pace_stage0.cli bias_law_counterfactual
+conda run -n bruce_gym env PYTHONPATH=src python -m pace_stage0.cli plant_audit
 ```
 
 `frame_forensics` is read-only: it computes H0/H+/H- frame diagnostics and writes
@@ -101,3 +102,10 @@ counterfactual replay unless the direct-order hypothesis wins all four parameter
 the frozen `q_compare=q_true-bias`, initialization, absolute targets, DCMotor envelope,
 three-step FIFO, asset, and PhysX settings. The command never changes the default
 `PACEActuatorCore` implementation or the formal Stage 0C status.
+
+`plant_audit` keeps Branch A closed and resets the current public-asset simulator to the
+author state before every 400 Hz interval. It compares one-step position, velocity, and
+acceleration transitions under the frozen public teacher torque and the secondary logged
+torque, snapshots all runtime mass/COM/inertia properties, verifies zero contact, then runs
+only the mandatory `use_physx_armature` and `collapse_fixed_joints` OFAT diagnostics. It
+does not select a new formal baseline or run locomotion/PPO.

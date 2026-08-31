@@ -78,6 +78,13 @@ def _parser() -> argparse.ArgumentParser:
     )
     bias_law.add_argument("--device-id", type=int, default=0)
     bias_law.add_argument("--output-dir", type=Path)
+
+    plant_audit = sub.add_parser(
+        "plant_audit",
+        help="Run frozen teacher-forced one-step plant/asset audit and OFAT A/B",
+    )
+    plant_audit.add_argument("--device-id", type=int, default=0)
+    plant_audit.add_argument("--output-dir", type=Path)
     return parser
 
 
@@ -174,6 +181,16 @@ def main(argv=None) -> int:
         from .bias_law_counterfactual import run_bias_law_counterfactual
 
         report = run_bias_law_counterfactual(
+            device_id=args.device_id, output_dir=args.output_dir
+        )
+        print(json.dumps(report, indent=2))
+        return 0
+    if args.command == "plant_audit":
+        # Isaac Gym Preview 4 must be imported before modules that import torch.
+        from isaacgym import gymapi  # noqa: F401
+        from .plant_audit import run_plant_audit
+
+        report = run_plant_audit(
             device_id=args.device_id, output_dir=args.output_dir
         )
         print(json.dumps(report, indent=2))
