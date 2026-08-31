@@ -1,0 +1,29 @@
+{
+  "schema": "pace_stage0.sources.v1",
+  "pace": {
+    "repository": "https://github.com/leggedrobotics/pace-sim2real",
+    "commit": "f07259c09b517ab5118bb1d01b0a6078cf8e1c31"
+  },
+  "anymal_d_asset": {
+    "repository": "https://github.com/ANYbotics/anymal_d_simple_description",
+    "commit": "cc1c920093b55ce75641dbfc367f9abd6505d112",
+    "license": "BSD-3-Clause",
+    "vendored_path": "third_party/anymal_d_simple_description",
+    "urdf_sha256": "0f7c208ab53d595a70711034b9ebe4dd47a4536ed0ccb1cc08d732c3ecd7ce1a"
+  },
+  "fit_data": {
+    "path": "/home/xy.chen/tw/dataset/pace_data/1_in_air/anymal/fitting.npy",
+    "sha256": "4436941fa5e9a5e8e1ef93d55956fcffdb4c4c4526b8ef3e145e6ea619fbe1c8"
+  },
+  "trajectory_data": {
+    "path": "/home/xy.chen/tw/dataset/pace_data/1_in_air/anymal/data.npy",
+    "sha256": "edf2e7648602802c87bbe52bb5c098c41553e8c683b2d9013d6f3f4df8bca621"
+  },
+  "energy_ratio": {
+    "value": 0.0192,
+    "provenance": "user_supplied_from_prior_dataset_audit",
+    "source_file_unverified": true,
+    "stage0_dependency": false,
+    "expected_path": "/home/xy.chen/tw/dataset/pace_data/x_others/22_energy_ratio.py"
+  }
+}
