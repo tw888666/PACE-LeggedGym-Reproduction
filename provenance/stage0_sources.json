@@ -42,9 +42,28 @@
     "legacy_serializer_implementation": "UNAVAILABLE / provenance unresolved",
     "evidence": {
       "bounds": "blocks 0:12 and 24:36 both use [0, 0.5], 12:24 uses [0, 6], 36:48 uses [-0.1, 0.1], and delay uses [0, 7]",
-      "paper_table_6": "decoded legacy order agrees with the rounded ANYmal friction, damping, armature, encoder-bias, and delay values; the later-public-code counterfactual does not"
+      "paper_table_6": "block types agree with the ANYmal friction, damping, armature, encoder-bias, and delay rows; internal joint-order evidence is tracked separately because not every artifact value falls inside its publication-rounding interval"
     },
     "automatic_layout_selection": false
+  },
+  "legacy_fitting_internal_joint_order": {
+    "most_likely_order": [
+      "LF_HAA", "LF_HFE", "LF_KFE",
+      "LH_HAA", "LH_HFE", "LH_KFE",
+      "RF_HAA", "RF_HFE", "RF_KFE",
+      "RH_HAA", "RH_HFE", "RH_KFE"
+    ],
+    "provenance": "artifact_and_paper_table6_strong_inference",
+    "confidence": "high",
+    "legacy_serializer_implementation": "UNAVAILABLE / provenance unresolved",
+    "source_code_confirmed": false,
+    "machine_readable_joint_metadata_in_fitting_npy": false,
+    "evidence": "H_A LF-LH-RF-RH wins the rounding-aware Table 6 comparison for friction, damping, armature, and encoder bias; the encoder-bias mapping is especially discriminating",
+    "authorized_cross_file_match_count": 1,
+    "raw_to_canonical_necessary": true,
+    "direct_order_replay_executed": false,
+    "formal_decoder_change": false,
+    "automatic_order_selection": false
   },
   "sysid_self_collision": {
     "formal_stage0C_setting": "disabled",

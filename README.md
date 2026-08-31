@@ -41,6 +41,7 @@ conda run -n bruce_gym env PYTHONPATH=src python -m pace_stage0.cli replay_fit
 conda run -n bruce_gym env PYTHONPATH=src python -m pace_stage0.cli residual_diagnostics
 conda run -n bruce_gym env PYTHONPATH=src python -m pace_stage0.cli joint_order_diagnostics
 conda run -n bruce_gym env PYTHONPATH=src python -m pace_stage0.cli torque_semantics
+conda run -n bruce_gym env PYTHONPATH=src python -m pace_stage0.cli fit_order_diagnostics
 ```
 
 `frame_forensics` is read-only: it computes H0/H+/H- frame diagnostics and writes
@@ -86,3 +87,10 @@ or the formal Stage 0C baseline.
 candidates, pre/post-delay timing, torque-only lag, P/PD, DCMotor clipping, and
 velocity/Coulomb residual signatures. It never runs Isaac Gym or changes the formal
 actuator/replay implementation.
+
+`fit_order_diagnostics` is a read-only audit of the 12-value parameter-block order in
+the frozen `fitting.npy`. It compares both `LF LH RF RH` and `LF RF LH RH` hypotheses
+against every joint-labelled ANYmal value in paper Table 6, using publication-rounding
+intervals. It also inventories every payload key and searches only the authorized
+`pace_data/**/anymal*/fitting.npy` scope. It does not change the decoder or run a
+counterfactual replay unless the direct-order hypothesis wins all four parameter blocks.
