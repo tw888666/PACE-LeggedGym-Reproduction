@@ -71,6 +71,13 @@ def _parser() -> argparse.ArgumentParser:
         help="Audit fitting.npy block-internal joint order against paper Table 6",
     )
     fit_order.add_argument("--output-dir", type=Path)
+
+    bias_law = sub.add_parser(
+        "bias_law_counterfactual",
+        help="Run diagnostic-only public vs legacy-effective bias-law replay",
+    )
+    bias_law.add_argument("--device-id", type=int, default=0)
+    bias_law.add_argument("--output-dir", type=Path)
     return parser
 
 
@@ -158,6 +165,17 @@ def main(argv=None) -> int:
         from .fit_order_diagnostics import run_fit_order_diagnostics
 
         report = run_fit_order_diagnostics(output_dir=args.output_dir)
+        print(json.dumps(report, indent=2))
+        return 0
+
+    if args.command == "bias_law_counterfactual":
+        # Isaac Gym Preview 4 must be imported before modules that import torch.
+        from isaacgym import gymapi  # noqa: F401
+        from .bias_law_counterfactual import run_bias_law_counterfactual
+
+        report = run_bias_law_counterfactual(
+            device_id=args.device_id, output_dir=args.output_dir
+        )
         print(json.dumps(report, indent=2))
         return 0
     raise AssertionError(f"Unhandled command: {args.command}")

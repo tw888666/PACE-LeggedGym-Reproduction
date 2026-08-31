@@ -42,6 +42,7 @@ conda run -n bruce_gym env PYTHONPATH=src python -m pace_stage0.cli residual_dia
 conda run -n bruce_gym env PYTHONPATH=src python -m pace_stage0.cli joint_order_diagnostics
 conda run -n bruce_gym env PYTHONPATH=src python -m pace_stage0.cli torque_semantics
 conda run -n bruce_gym env PYTHONPATH=src python -m pace_stage0.cli fit_order_diagnostics
+conda run -n bruce_gym env PYTHONPATH=src python -m pace_stage0.cli bias_law_counterfactual
 ```
 
 `frame_forensics` is read-only: it computes H0/H+/H- frame diagnostics and writes
@@ -94,3 +95,9 @@ against every joint-labelled ANYmal value in paper Table 6, using publication-ro
 intervals. It also inventories every payload key and searches only the authorized
 `pace_data/**/anymal*/fitting.npy` scope. It does not change the decoder or run a
 counterfactual replay unless the direct-order hypothesis wins all four parameter blocks.
+
+`bias_law_counterfactual` runs one diagnostic-only Isaac Gym A/B. The public branch uses
+`q_control=q_true-bias`; the legacy-effective branch uses `q_control=q_true`. Both retain
+the frozen `q_compare=q_true-bias`, initialization, absolute targets, DCMotor envelope,
+three-step FIFO, asset, and PhysX settings. The command never changes the default
+`PACEActuatorCore` implementation or the formal Stage 0C status.

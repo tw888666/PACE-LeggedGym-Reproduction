@@ -112,6 +112,28 @@
     "asset_plant_audit_authorized": false,
     "formal_actuator_change": false
   },
+  "legacy_effective_bias_counterfactual": {
+    "scope": "diagnostic-only single-variable Isaac Gym replay",
+    "public_control": "q_control=q_true-encoder_bias",
+    "legacy_effective_control": "q_control=q_true",
+    "frozen_comparison_both_modes": "q_compare=q_true-encoder_bias",
+    "public_position_overall_rmse_rad": 0.012818364796375577,
+    "legacy_position_overall_rmse_rad": 0.015058865426746155,
+    "public_active_torque_rmse_Nm": 0.8601259259454613,
+    "legacy_active_torque_rmse_Nm": 0.8527205159382156,
+    "public_velocity_rmse_rad_s": 0.11946563975022818,
+    "legacy_velocity_rmse_rad_s": 0.11961753250605303,
+    "result_case": "C",
+    "torque_and_position_closed": false,
+    "diagnostic_stage0C_pass": false,
+    "interpretation": "legacy data.npy dof_torques is applied-like but the effective bias counterfactual neither closes replay torque nor explains the trajectory; position worsens materially",
+    "branch_A_closed_as_formal_actuator_change_basis": true,
+    "asset_plant_audit_authorized": true,
+    "formal_actuator_change": false,
+    "formal_actuator_recommendation": "retain paper/public semantics",
+    "provenance_conflict": "legacy artifact / later public implementation semantic divergence",
+    "qol_commit_changed_bias_sign": false
+  },
   "energy_ratio": {
     "value": 0.0192,
     "provenance": "user_supplied_from_prior_dataset_audit",
