@@ -45,6 +45,7 @@ conda run -n bruce_gym env PYTHONPATH=src python -m pace_stage0.cli fit_order_di
 conda run -n bruce_gym env PYTHONPATH=src python -m pace_stage0.cli bias_law_counterfactual
 conda run -n bruce_gym env PYTHONPATH=src python -m pace_stage0.cli plant_audit
 conda run -n bruce_gym env PYTHONPATH=src python -m pace_stage0.cli accumulation_audit
+conda run -n bruce_gym env PYTHONPATH=src python -m pace_stage0.cli p4_p5_audit
 ```
 
 `frame_forensics` is read-only: it computes H0/H+/H- frame diagnostics and writes
@@ -116,3 +117,14 @@ inventory, evaluates position-derived velocity hypotheses at lag -3..+3, and run
 multi-environment diagnostic matrix covering four initial velocities, target timing ±1,
 teacher-forcing horizons 1..512/full, and q-only/qdot-only resets. It preserves the formal
 actuator, delay FIFO, initial state, target timing, plant parameters, and Stage 0C gates.
+
+`p4_p5_audit` is the final narrow Stage 0C OFAT diagnostic authorized by the accumulation
+audit. P4 compares only fitted joint properties against `damping=0`, `friction=0`, and
+both-zero variants under one-step teacher forcing plus H8/H32/H128/full horizons. Isaac
+Gym joint friction is treated as a dimensionless, transmission-force/load-dependent
+Coulomb coefficient—not a fixed Nm torque—following the
+[NVIDIA engineer explanation](https://forums.developer.nvidia.com/t/possible-bug-in-joint-friction-value-definition/208631).
+Only if P4 has no evidence-backed material improvement does P5 run exactly `substeps=2`
+and `num_velocity_iterations=1`. The command never scales or refits parameters, never
+uses variable timestamp dt, and never promotes a lower-RMSE diagnostic to the formal
+baseline.

@@ -92,6 +92,13 @@ def _parser() -> argparse.ArgumentParser:
     )
     accumulation.add_argument("--device-id", type=int, default=0)
     accumulation.add_argument("--output-dir", type=Path)
+
+    p4_p5 = sub.add_parser(
+        "p4_p5_audit",
+        help="Run the frozen narrow joint-property and integration OFAT audit",
+    )
+    p4_p5.add_argument("--device-id", type=int, default=0)
+    p4_p5.add_argument("--output-dir", type=Path)
     return parser
 
 
@@ -208,6 +215,16 @@ def main(argv=None) -> int:
         from .accumulation_audit import run_accumulation_audit
 
         report = run_accumulation_audit(
+            device_id=args.device_id, output_dir=args.output_dir
+        )
+        print(json.dumps(report, indent=2))
+        return 0
+    if args.command == "p4_p5_audit":
+        # Isaac Gym Preview 4 must be imported before modules that import torch.
+        from isaacgym import gymapi  # noqa: F401
+        from .p4_p5_audit import run_p4_p5_audit
+
+        report = run_p4_p5_audit(
             device_id=args.device_id, output_dir=args.output_dir
         )
         print(json.dumps(report, indent=2))

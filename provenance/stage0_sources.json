@@ -134,6 +134,16 @@
     "provenance_conflict": "legacy artifact / later public implementation semantic divergence",
     "qol_commit_changed_bias_sign": false
   },
+  "isaac_gym_joint_friction_damping_semantics": {
+    "source": "https://forums.developer.nvidia.com/t/possible-bug-in-joint-friction-value-definition/208631",
+    "source_type": "NVIDIA Developer Forums / NVIDIA engineer explanation",
+    "preview4_joint_friction": "dimensionless coefficient; transmission-force/load-dependent Coulomb friction",
+    "preview4_joint_damping": "velocity-dependent joint damping",
+    "fixed_Nm_friction_interpretation": false,
+    "legacy_PACE_property_application": "UNAVAILABLE / provenance unresolved",
+    "P4_usage": "diagnostic-only null ablations; no value scaling or re-identification",
+    "formal_baseline_change": false
+  },
   "energy_ratio": {
     "value": 0.0192,
     "provenance": "user_supplied_from_prior_dataset_audit",
