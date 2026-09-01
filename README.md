@@ -46,6 +46,7 @@ conda run -n bruce_gym env PYTHONPATH=src python -m pace_stage0.cli bias_law_cou
 conda run -n bruce_gym env PYTHONPATH=src python -m pace_stage0.cli plant_audit
 conda run -n bruce_gym env PYTHONPATH=src python -m pace_stage0.cli accumulation_audit
 conda run -n bruce_gym env PYTHONPATH=src python -m pace_stage0.cli p4_p5_audit
+conda run -n bruce_gym env PYTHONPATH=src python -m pace_stage0.cli boundary_review
 ```
 
 `frame_forensics` is read-only: it computes H0/H+/H- frame diagnostics and writes
@@ -128,3 +129,10 @@ Only if P4 has no evidence-backed material improvement does P5 run exactly `subs
 and `num_velocity_iterations=1`. The command never scales or refits parameters, never
 uses variable timestamp dt, and never promotes a lower-RMSE diagnostic to the formal
 baseline.
+
+`boundary_review` is static: it does not launch Isaac Gym. It combines the frozen Stage 0
+reports into separate status tracks for exact legacy replay (`Stage 0C-E`) and public-
+information reproduction readiness (`Stage 0C-R`). The current review permanently retains
+`Stage 0C-E = FAIL/unresolved` and recommends Option C, but deliberately leaves
+`Stage 0C-R = NOT SET` and locomotion/PPO blocked until explicit human approval. It does
+not create `provenance/stage0_freeze.json`, a tag, or a result-selected threshold.

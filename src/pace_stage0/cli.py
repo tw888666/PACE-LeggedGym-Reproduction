@@ -99,6 +99,12 @@ def _parser() -> argparse.ArgumentParser:
     )
     p4_p5.add_argument("--device-id", type=int, default=0)
     p4_p5.add_argument("--output-dir", type=Path)
+
+    boundary = sub.add_parser(
+        "boundary_review",
+        help="Build the static Stage 0 exact-vs-readiness boundary review",
+    )
+    boundary.add_argument("--output-dir", type=Path)
     return parser
 
 
@@ -227,6 +233,12 @@ def main(argv=None) -> int:
         report = run_p4_p5_audit(
             device_id=args.device_id, output_dir=args.output_dir
         )
+        print(json.dumps(report, indent=2))
+        return 0
+    if args.command == "boundary_review":
+        from .boundary_review import write_boundary_review
+
+        report = write_boundary_review(output_dir=args.output_dir)
         print(json.dumps(report, indent=2))
         return 0
     raise AssertionError(f"Unhandled command: {args.command}")
