@@ -34,6 +34,7 @@ from .semantics import (
     reset_true_joint_position,
     sample_commands,
     seed_everything,
+    summarize_completed_episodes,
     timeout_mask,
 )
 from .terrain import TerrainMap, build_terrain
@@ -339,6 +340,14 @@ class Stage1LocomotionEnv:
                 "total",
             )
         }
+        self.episode_metric_sums = {
+            name: torch.zeros(self.num_envs, device=self.device)
+            for name in (
+                "linear_tracking_squared_error",
+                "yaw_tracking_squared_error",
+                "absolute_action",
+            )
+        }
         x = torch.linspace(-1.5, 1.5, self.cfg.observation.height_scan_shape[0], device=self.device)
         y = torch.linspace(-1.0, 1.0, self.cfg.observation.height_scan_shape[1], device=self.device)
         grid_x, grid_y = torch.meshgrid(x, y, indexing="ij")
@@ -502,7 +511,18 @@ class Stage1LocomotionEnv:
             self.extras["episode"]["terrain_level"] = torch.mean(
                 self.terrain_levels.float()
             )
+            self.extras["episode"].update(
+                summarize_completed_episodes(
+                    self.episode_metric_sums["linear_tracking_squared_error"][completed_ids],
+                    self.episode_metric_sums["yaw_tracking_squared_error"][completed_ids],
+                    self.episode_metric_sums["absolute_action"][completed_ids],
+                    self.episode_length_buf[completed_ids],
+                    self.time_out_buf[completed_ids],
+                )
+            )
         for values in self.episode_sums.values():
+            values[env_ids] = 0.0
+        for values in self.episode_metric_sums.values():
             values[env_ids] = 0.0
         count = len(env_ids)
         lo, hi = self.cfg.reset.dof_position_multiplier_range
@@ -660,6 +680,15 @@ class Stage1LocomotionEnv:
             config=self.cfg,
         )
         self.rew_buf = terms.total
+        self.episode_metric_sums["linear_tracking_squared_error"] += torch.sum(
+            (self.commands[:, :2] - base_lin[:, :2]).square(), dim=1
+        )
+        self.episode_metric_sums["yaw_tracking_squared_error"] += (
+            self.commands[:, 2] - base_ang[:, 2]
+        ).square()
+        self.episode_metric_sums["absolute_action"] += torch.mean(
+            torch.abs(self.actions), dim=1
+        )
         self.episode_sums["velocity_tracking"] += terms.scaled_velocity_tracking
         self.episode_sums["collision"] += terms.scaled_collision
         self.episode_sums["foot_touchdown"] += terms.scaled_foot_touchdown

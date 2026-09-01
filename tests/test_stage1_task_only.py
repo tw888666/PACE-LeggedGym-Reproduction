@@ -20,6 +20,7 @@ from pace_stage1.semantics import (
     reset_true_joint_position,
     reward_manifest,
     sample_commands,
+    summarize_completed_episodes,
     timeout_bootstrap,
     timeout_mask,
 )
@@ -199,6 +200,24 @@ class TaskRewardExecutionTest(unittest.TestCase):
 
 
 class TerminationTerrainPPOProvenanceTest(unittest.TestCase):
+    def test_completed_episode_logging_metrics_are_explicit(self):
+        metrics = summarize_completed_episodes(
+            torch.tensor([4.0, 36.0]),
+            torch.tensor([1.0, 9.0]),
+            torch.tensor([2.0, 9.0]),
+            torch.tensor([4, 9]),
+            torch.tensor([False, True]),
+        )
+        self.assertEqual(set(metrics), {
+            "base_contact_rate", "timeout_rate", "velocity_tracking_rmse",
+            "yaw_tracking_rmse", "mean_abs_action",
+        })
+        self.assertAlmostEqual(metrics["base_contact_rate"].item(), 0.5)
+        self.assertAlmostEqual(metrics["timeout_rate"].item(), 0.5)
+        self.assertAlmostEqual(metrics["velocity_tracking_rmse"].item(), 1.5)
+        self.assertAlmostEqual(metrics["yaw_tracking_rmse"].item(), 0.75)
+        self.assertAlmostEqual(metrics["mean_abs_action"].item(), 0.75)
+
     def test_timeout_bootstrap_matches_rsl_rl(self):
         actual = timeout_bootstrap(
             torch.tensor([1.0, 1.0]),
@@ -242,6 +261,15 @@ class TerminationTerrainPPOProvenanceTest(unittest.TestCase):
         self.assertEqual((smoke.num_envs, smoke.rollout_steps), (2, 2))
         self.assertFalse(smoke.formal_seed)
         self.assertFalse(smoke.checkpoint_created)
+
+    def test_formal_flat_seed0_baseline_is_exact(self):
+        baseline = STAGE1_CONFIG.formal_baseline
+        self.assertEqual(baseline.experiment_name, "stage1_task_only_flat_seed0")
+        self.assertEqual((baseline.num_envs, baseline.max_iterations), (4096, 3000))
+        self.assertEqual(baseline.seed, 0)
+        self.assertEqual(baseline.terrain_mode, "plane")
+        self.assertTrue(baseline.friction_randomization)
+        self.assertTrue(baseline.pushes)
 
     def test_runner_bridge_changes_only_task_iteration(self):
         class Environment:

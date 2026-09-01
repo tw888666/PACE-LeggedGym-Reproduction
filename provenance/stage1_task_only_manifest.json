@@ -1,7 +1,8 @@
 {
   "schema": "pace_stage1.task_only_provenance.v1",
   "status": {
-    "Stage_1_Task_only_MDP": "IMPLEMENTED / GATE PASS",
+    "Stage_1_Task_only_MDP": "PIPELINE PASS / TRAINING USABLE",
+    "Stage_1_Task_only_policy_quality": "NOT FROZEN",
     "PPO_started": false,
     "formal_training_started": false,
     "formal_checkpoint_created": false
@@ -260,6 +261,32 @@
       "source": "reconstruction assumption",
       "confidence": "high",
       "notes": "Bounded pipeline validation only; it is not a formal seed or result."
+    },
+    "formal_flat_seed0": {
+      "value": "4096 env, 3000 iterations, seed 0, plane terrain, friction randomization and pushes enabled",
+      "source": "explicit human authorization",
+      "confidence": "high",
+      "notes": "Experiment name stage1_task_only_flat_seed0; policy quality remains unfrozen until training and evaluation complete."
+    }
+  },
+  "training_diagnostics": {
+    "completed_episode_metrics": {
+      "value": [
+        "base_contact_rate",
+        "timeout_rate",
+        "velocity_tracking_rmse",
+        "yaw_tracking_rmse",
+        "mean_abs_action"
+      ],
+      "source": "explicit human authorization",
+      "confidence": "high",
+      "notes": "Logging-only accumulators; reward, observation, action, termination and optimizer semantics are unchanged."
+    },
+    "policy_std": {
+      "value": "Policy/mean_noise_std",
+      "source": "rsl_rl v1.0.2",
+      "confidence": "high",
+      "notes": "Gaussian policy distribution standard deviation, not action RMS."
     }
   },
   "unresolved_assumptions": [
@@ -294,9 +321,9 @@
   },
   "verification": {
     "tests": {
-      "result": "96/96 PASS",
+      "result": "98/98 PASS",
       "stage0": "71/71 PASS",
-      "stage1": "25/25 PASS"
+      "stage1": "27/27 PASS"
     },
     "environment_smoke": {
       "plane_2_env_3_step": "PASS",

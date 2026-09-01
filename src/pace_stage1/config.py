@@ -225,6 +225,19 @@ class PPOSmokeConfig:
 
 
 @dataclass(frozen=True)
+class FormalTaskOnlyBaselineConfig:
+    experiment_name: str = "stage1_task_only_flat_seed0"
+    num_envs: int = 4096
+    max_iterations: int = 3000
+    seed: int = 0
+    terrain_mode: str = "plane"
+    sim_device: str = "cuda:0"
+    rl_device: str = "cuda:0"
+    friction_randomization: bool = True
+    pushes: bool = True
+
+
+@dataclass(frozen=True)
 class Stage1Config:
     schema: str = "pace_stage1.task_only_mdp.v1"
     observation: ObservationConfig = field(default_factory=ObservationConfig)
@@ -236,6 +249,9 @@ class Stage1Config:
     randomization: RandomizationConfig = field(default_factory=RandomizationConfig)
     ppo: PPOConfig = field(default_factory=PPOConfig)
     ppo_smoke: PPOSmokeConfig = field(default_factory=PPOSmokeConfig)
+    formal_baseline: FormalTaskOnlyBaselineConfig = field(
+        default_factory=FormalTaskOnlyBaselineConfig
+    )
 
     def to_dict(self) -> Dict[str, object]:
         return asdict(self)

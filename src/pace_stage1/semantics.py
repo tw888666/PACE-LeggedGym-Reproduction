@@ -188,6 +188,39 @@ def reset_true_joint_position(
     return default_command_position * multiplier + encoder_bias
 
 
+def summarize_completed_episodes(
+    linear_tracking_squared_error_sum: torch.Tensor,
+    yaw_tracking_squared_error_sum: torch.Tensor,
+    absolute_action_sum: torch.Tensor,
+    episode_lengths: torch.Tensor,
+    timeouts: torch.Tensor,
+) -> Dict[str, torch.Tensor]:
+    """Return logging-only completed-episode diagnostics without changing reward."""
+    shapes = {
+        tuple(linear_tracking_squared_error_sum.shape),
+        tuple(yaw_tracking_squared_error_sum.shape),
+        tuple(absolute_action_sum.shape),
+        tuple(episode_lengths.shape),
+        tuple(timeouts.shape),
+    }
+    if len(shapes) != 1:
+        raise ValueError("completed-episode diagnostic tensors must have identical shapes")
+    if torch.any(episode_lengths <= 0):
+        raise ValueError("completed episode lengths must be positive")
+    lengths = episode_lengths.to(dtype=linear_tracking_squared_error_sum.dtype)
+    return {
+        "base_contact_rate": (~timeouts).to(lengths.dtype).mean(),
+        "timeout_rate": timeouts.to(lengths.dtype).mean(),
+        "velocity_tracking_rmse": torch.sqrt(
+            linear_tracking_squared_error_sum / lengths
+        ).mean(),
+        "yaw_tracking_rmse": torch.sqrt(
+            yaw_tracking_squared_error_sum / lengths
+        ).mean(),
+        "mean_abs_action": (absolute_action_sum / lengths).mean(),
+    }
+
+
 @dataclass(frozen=True)
 class TaskRewardTerms:
     velocity_tracking: torch.Tensor

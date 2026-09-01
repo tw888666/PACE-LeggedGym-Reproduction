@@ -8,8 +8,9 @@ Stage 0B       FROZEN
 Stage 0C-E     FAIL / unresolved
 Stage 0C-R     PASS
 Stage 0        FROZEN
-Stage 1        TASK-ONLY MDP GATE PASS
-PPO training   NOT STARTED
+Stage 1        PIPELINE PASS / TRAINING USABLE
+Policy quality NOT FROZEN
+PPO training   NOT STARTED IN THIS COMMIT
 ```
 
 `Stage 0C-E` is the exact legacy-trajectory replay gate. Its original thresholds remain
@@ -85,10 +86,24 @@ conda run --no-capture-output -n bruce_gym env PYTHONPATH=src python -m pace_sta
 conda run --no-capture-output -n bruce_gym env PYTHONPATH=src python -m pace_stage1.ppo_smoke
 ```
 
-测试结果为 `96/96 PASS`：Stage 0 保留 `71/71`，Stage 1 新增 `25/25`。Plane
+测试结果为 `98/98 PASS`：Stage 0 保留 `71/71`，Stage 1 新增 `27/27`。Plane
 （平面）和 production trimesh（生产三角网格）环境 smoke（冒烟验证）通过；一次
 2-env、2-step 的内存内 PPO 更新也通过，loss（损失）有限，且未创建 checkpoint。
 正式 PPO、正式 seed、baseline evaluation（基线评估）均未启动。
+
+训练日志在不改变 MDP 的前提下额外记录 completed episode（已完成回合）的
+`base_contact_rate`、`timeout_rate`、`velocity_tracking_rmse`、`yaw_tracking_rmse` 和
+`mean_abs_action`；policy distribution std（策略分布标准差）继续使用 rsl_rl 原生
+`Policy/mean_noise_std`。正式 Task-only reference policy（仅任务参考策略）的固定入口为：
+
+```bash
+CUDA_VISIBLE_DEVICES=0 conda run --no-capture-output -n bruce_gym env PYTHONPATH=src python -m pace_stage1.train --flat-seed0
+```
+
+该入口固定为 `4096 env × 3000 iterations × seed 0`，使用 plane terrain（平面地形），
+保留 friction randomization（摩擦随机化）和 pushes（推扰），实验名为
+`stage1_task_only_flat_seed0`。这会生成正式 Task-only 权重，但在完成训练与评估前，
+policy quality（策略质量）仍为 `NOT FROZEN`。
 
 ## Frozen Stage 0 scope
 
