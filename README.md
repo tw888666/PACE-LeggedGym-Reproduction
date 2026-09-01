@@ -1,6 +1,54 @@
-# PACE ANYmal D — Stage 0 actuator reproduction
+# PACE ANYmal D — public-information independent reproduction
 
-This repository implements only the frozen Stage 0 boundary:
+## Project status
+
+```text
+Stage 0A       PASS
+Stage 0B       FROZEN
+Stage 0C-E     FAIL / unresolved
+Stage 0C-R     PASS
+Stage 0        FROZEN
+Stage 1        AUTHORIZED / not started
+PPO training   NOT STARTED
+```
+
+`Stage 0C-E` is the exact legacy-trajectory replay gate. Its original thresholds remain
+`overall <= 0.010 rad` and `all per-joint <= 0.020 rad`; the released replay residual is
+`0.012818364796375577 rad`, so this gate remains permanently **FAIL / unresolved**.
+`Stage 0C-R` is a separate public-information reproduction-readiness decision. It is
+**PASS** by explicit human approval of Option C and does not imply exact reproduction of
+the unpublished legacy simulator, asset, exporter, or PhysX configuration.
+
+The authoritative machine-readable decision is
+[`provenance/stage0_freeze.json`](provenance/stage0_freeze.json). Its final freeze commit
+is resolved by the peeled target of the annotated tag
+`stage0-public-reproduction-ready`; this avoids recording a fabricated self-referential
+commit SHA inside the commit itself.
+
+## Mandatory Stage 1+ provenance banner
+
+```text
+Reproduction status:
+Public-information independent reproduction.
+
+Exact PACE legacy SysID replay:
+UNRESOLVED / Stage 0C-E FAIL.
+
+Known residual:
+overall 0.012818 rad on released legacy replay.
+
+Legacy exact asset and paper-era simulator configuration:
+not publicly resolved.
+```
+
+Every future Stage 1+ README section, experiment manifest, training report, and evaluation
+report must retain that banner. Stage 1 locomotion implementation is authorized, but it
+has not been started in this freeze commit. PPO implementation, GPU jobs, and PPO training
+have not started.
+
+## Frozen Stage 0 scope
+
+The Stage 0 implementation is frozen at this boundary:
 
 ```text
 check_install -> decode_fit -> actuator_unit -> replay_fit
@@ -130,9 +178,10 @@ and `num_velocity_iterations=1`. The command never scales or refits parameters, 
 uses variable timestamp dt, and never promotes a lower-RMSE diagnostic to the formal
 baseline.
 
-`boundary_review` is static: it does not launch Isaac Gym. It combines the frozen Stage 0
-reports into separate status tracks for exact legacy replay (`Stage 0C-E`) and public-
-information reproduction readiness (`Stage 0C-R`). The current review permanently retains
-`Stage 0C-E = FAIL/unresolved` and recommends Option C, but deliberately leaves
-`Stage 0C-R = NOT SET` and locomotion/PPO blocked until explicit human approval. It does
-not create `provenance/stage0_freeze.json`, a tag, or a result-selected threshold.
+`boundary_review` is a static pre-approval evidence snapshot: it does not launch Isaac
+Gym. It combines the frozen Stage 0 reports into separate tracks for exact legacy replay
+(`Stage 0C-E`) and public-information reproduction readiness (`Stage 0C-R`). That report
+retains `Stage 0C-E = FAIL/unresolved`, recommends Option C, and intentionally records
+`Stage 0C-R = NOT SET` because it cannot infer a human decision. The subsequent explicit
+human approval and current `Stage 0C-R = PASS` are recorded only in
+`provenance/stage0_freeze.json`. The exact thresholds and failure evidence remain unchanged.

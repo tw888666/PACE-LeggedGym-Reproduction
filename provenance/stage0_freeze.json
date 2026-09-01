@@ -1,0 +1,637 @@
+{
+  "schema": "pace_stage0.freeze.v1",
+  "freeze_identity": {
+    "freeze_status": "FROZEN for public-information independent reproduction",
+    "freeze_timestamp_utc": "2026-09-01T08:51:14Z",
+    "manifest_created_from_commit": "96962f8a861e69d8ba04efee247feee07050445c",
+    "freeze_commit": {
+      "resolution": "annotated_tag_target",
+      "annotated_tag": "stage0-public-reproduction-ready",
+      "git_resolution_expression": "stage0-public-reproduction-ready^{}",
+      "inline_sha": null,
+      "reason": "A Git commit cannot contain its own SHA without a circular dependency. The immutable annotated-tag target is the authoritative final freeze commit."
+    },
+    "boundary_review_commit": "96962f8a861e69d8ba04efee247feee07050445c",
+    "evidence_baseline_commit": "206b550dc087ba9f4375fd13516439103611db3f",
+    "branch": "main",
+    "approval_type": "explicit_human_approval",
+    "approved_option": "C"
+  },
+  "status": {
+    "Stage_0A": "PASS",
+    "Stage_0B": "FROZEN",
+    "Stage_0C_E_exact_legacy_replay": "FAIL / unresolved",
+    "Stage_0C_R_reproduction_readiness": "PASS",
+    "Stage_0": "FROZEN",
+    "Stage_1_locomotion_implementation": "AUTHORIZED / not started",
+    "PPO_training_started": false
+  },
+  "status_semantics": {
+    "Stage_0C_E": "Exact historical replay of the released legacy sim_method trajectory under the permanently retained exact gates.",
+    "Stage_0C_R": "Public evidence is sufficient to begin an auditable independent locomotion reproduction while preserving the unresolved exact legacy-replay discrepancy.",
+    "Stage_0C_R_does_not_mean": [
+      "exact reproduction of the author's legacy simulator",
+      "exact reproduction of the released sim_method trajectory",
+      "resolution of the unpublished legacy asset or configuration",
+      "relaxation of the Stage 0C-E exact thresholds"
+    ]
+  },
+  "source_versions": {
+    "PACE_paper": {
+      "version": "arXiv:2509.06342v2",
+      "url": "https://arxiv.org/html/2509.06342v2"
+    },
+    "PACE_public_repository": "https://github.com/leggedrobotics/pace-sim2real",
+    "PACE_reference_commit": "f07259c09b517ab5118bb1d01b0a6078cf8e1c31",
+    "LeggedGym_reference45_commit": "8fa29acc6fd1910c3d9659eef6310bdd301cde0a",
+    "Isaac_Gym": "Preview 4 / isaacgym==1.0rc4",
+    "rsl_rl": "v1.0.2",
+    "Python": "3.8",
+    "runtime_detail": {
+      "python_full": "3.8.20",
+      "torch": "1.13.1+cu117",
+      "torchvision": "0.14.1+cu117",
+      "numpy": "1.23.5",
+      "ubuntu": "22.04",
+      "gcc": "11.4.0",
+      "cuda_runtime": "11.7"
+    }
+  },
+  "artifact_identity": {
+    "fitting_npy": {
+      "path": "/home/xy.chen/tw/dataset/pace_data/1_in_air/anymal/fitting.npy",
+      "sha256": "4436941fa5e9a5e8e1ef93d55956fcffdb4c4c4526b8ef3e145e6ea619fbe1c8"
+    },
+    "data_npy": {
+      "path": "/home/xy.chen/tw/dataset/pace_data/1_in_air/anymal/data.npy",
+      "sha256": "edf2e7648602802c87bbe52bb5c098c41553e8c683b2d9013d6f3f4df8bca621"
+    },
+    "ANYmal_public_asset": {
+      "repository": "https://github.com/ANYbotics/anymal_d_simple_description",
+      "commit": "cc1c920093b55ce75641dbfc367f9abd6505d112",
+      "vendored_URDF": "third_party/anymal_d_simple_description/urdf/anymal.urdf",
+      "URDF_sha256": "0f7c208ab53d595a70711034b9ebe4dd47a4536ed0ccb1cc08d732c3ecd7ce1a"
+    }
+  },
+  "parameter_decoding": {
+    "legacy_block_layout": [
+      "friction[0:12]",
+      "damping[12:24]",
+      "armature[24:36]",
+      "encoder_bias[36:48]",
+      "delay[48]"
+    ],
+    "block_internal_order": [
+      "LF",
+      "LH",
+      "RF",
+      "RH"
+    ],
+    "canonical_order": [
+      "LF",
+      "RF",
+      "LH",
+      "RH"
+    ],
+    "raw_to_canonical_indices": [
+      0,
+      1,
+      2,
+      6,
+      7,
+      8,
+      3,
+      4,
+      5,
+      9,
+      10,
+      11
+    ],
+    "provenance": "artifact_and_paper strong inference",
+    "legacy_serializer": "UNAVAILABLE / NOT PUBLICLY RECOVERED",
+    "decoded_canonical": {
+      "joint_order": [
+        "LF_HAA",
+        "LF_HFE",
+        "LF_KFE",
+        "RF_HAA",
+        "RF_HFE",
+        "RF_KFE",
+        "LH_HAA",
+        "LH_HFE",
+        "LH_KFE",
+        "RH_HAA",
+        "RH_HFE",
+        "RH_KFE"
+      ],
+      "friction": [
+        0.004336767144623249,
+        0.02356833456849558,
+        0.02764279481214793,
+        0.0035523434110258656,
+        0.026603725333277123,
+        0.03678432006895921,
+        0.0031218328791020322,
+        0.01760145379125208,
+        0.03464546880824865,
+        0.004672249715600707,
+        0.01168342750063947,
+        0.056901954367993945
+      ],
+      "damping": [
+        4.970421181566406,
+        4.403168513122605,
+        5.175447392911989,
+        4.822354406145449,
+        4.322558570205388,
+        5.272673890611225,
+        4.959055721889139,
+        5.102853512988267,
+        5.465203681832346,
+        5.106823839560162,
+        5.194922011984188,
+        5.433623179762513
+      ],
+      "armature": [
+        0.07741914141477851,
+        0.07421706621610594,
+        0.06307038954351182,
+        0.0783488812409445,
+        0.07282275470405225,
+        0.060723801804437344,
+        0.08183007667720224,
+        0.04343906057601288,
+        0.058589618620775025,
+        0.0737174679573585,
+        0.03429042482187636,
+        0.04338868743811375
+      ],
+      "encoder_bias": [
+        0.02242854097736413,
+        0.0058054093216863,
+        -0.0034394926778502782,
+        0.011688095025005604,
+        -0.008161349707431126,
+        0.008860718801043846,
+        -0.012256469123324842,
+        -0.00127434239657169,
+        -0.009276143198747366,
+        -0.01624324231804075,
+        0.004347707601244671,
+        0.004913807125135852
+      ],
+      "delay_raw": 3.240597475516376,
+      "delay_steps": 3,
+      "delay_discretization": "integer truncation toward zero"
+    }
+  },
+  "actuator_semantics": {
+    "control_frame": "q_encoder = q_true - encoder_bias",
+    "PD_law": "tau_pd = 85 * (q_target_absolute - q_encoder) - 0.6 * qdot",
+    "Kp": 85.0,
+    "Kd": 0.6,
+    "target_semantics": "absolute joint-position target",
+    "motor": {
+      "type": "four-quadrant DCMotor torque-speed envelope",
+      "saturation_effort_Nm": 140.0,
+      "nominal_effort_Nm": 89.0,
+      "velocity_limit_rad_s": 8.5
+    },
+    "delay_pipeline": "DCMotor-saturated torque -> integer 3-step zero-padded FIFO -> Isaac Gym effort",
+    "delay_steps": 3,
+    "legacy_sim_method_torque_semantics": "UNRESOLVED semantic divergence; delayed/applied-like artifact identity does not override the paper/public actuator law",
+    "Actuator_Branch_A": "CLOSED"
+  },
+  "physics_baseline": {
+    "scope": "Stage 0 fixed-base SysID replay public-reproduction baseline",
+    "dt_s": 0.0025,
+    "substeps": 1,
+    "PhysX": {
+      "solver_type": "TGS",
+      "num_position_iterations": 4,
+      "num_velocity_iterations": 0,
+      "fixed_base": true
+    },
+    "DOF_drive": {
+      "mode": "DOF_MODE_EFFORT",
+      "built_in_stiffness": 0.0,
+      "torque_application": "actuation-force tensor only"
+    },
+    "fitted_properties": [
+      "friction",
+      "damping",
+      "armature"
+    ],
+    "self_collision": {
+      "formal_setting": "OFF",
+      "legacy_provenance": "provisional / unresolved",
+      "ON_diagnostic": "severe initial penetration, contacts on all 6679 transitions, 0.189955519 rad position RMSE",
+      "formal_change_from_diagnostic": false
+    }
+  },
+  "exact_replay": {
+    "Stage_0C_E_status": "FAIL / unresolved",
+    "comparison": "q_encoder_ours[k] vs sim_method.dof_pos[k] at zero lag",
+    "metrics": {
+      "overall_encoder_frame_RMSE_rad": 0.012818364796375577,
+      "RF_HFE_RMSE_rad": 0.023814172906643862,
+      "LH_HFE_RMSE_rad": 0.022510682052527972,
+      "ours_vs_real_RMSE_rad": 0.023642306816740108,
+      "author_sim_method_vs_real_RMSE_rad": 0.0158459450644767,
+      "sim_nothing_vs_real_RMSE_rad": 0.202229663621134
+    },
+    "gates": {
+      "overall_encoder_RMSE_le_0p010": {
+        "threshold_rad": 0.01,
+        "status": "FAIL"
+      },
+      "all_per_joint_RMSE_le_0p020": {
+        "threshold_rad": 0.02,
+        "status": "FAIL",
+        "failing_joints": [
+          "RF_HFE",
+          "LH_HFE"
+        ]
+      },
+      "ours_real_le_1p2x_author_real": {
+        "threshold_rad": 0.01901513407737204,
+        "status": "FAIL"
+      },
+      "ours_real_lt_sim_nothing_real": {
+        "status": "PASS"
+      }
+    },
+    "thresholds_relaxed": false,
+    "forbidden_labels": [
+      "near pass",
+      "close enough",
+      "essentially passed"
+    ]
+  },
+  "local_dynamics_evidence": {
+    "one_step": {
+      "position_RMSE_rad": 0.000025462942034564316,
+      "velocity_RMSE_rad_s": 0.010966974180645805,
+      "acceleration_RMSE_rad_s2": 4.387118061649227
+    },
+    "accumulation_position_RMSE_rad": {
+      "H1": 0.000025649483160260757,
+      "H32": 0.003014472864363812,
+      "H128": 0.010133817355765608,
+      "H512": 0.012161755969259145,
+      "full": 0.012818364796375577
+    },
+    "documented_mechanism": "small structured local velocity/acceleration transition mismatch is amplified through closed-loop position/control feedback and saturates near the observed full-replay residual",
+    "causal_uniqueness_claimed": false
+  },
+  "closed_hypotheses": [
+    {
+      "branch": "joint order",
+      "hypothesis": "data.npy or fit vectors require an RF/LH or alternative leg permutation",
+      "diagnostic": "channel signatures, all leg-block bias permutations, and same-index/swap comparisons",
+      "result": "canonical data order retained; RF/LH swap changes sim_method-vs-real RMSE from 0.015845945 to 0.887019788 rad",
+      "formal_change": false,
+      "status": "CLOSED for implementation; legacy schema source remains unavailable"
+    },
+    {
+      "branch": "fit block layout",
+      "hypothesis": "legacy fitting.npy uses the current public CMA-ES block serialization",
+      "diagnostic": "payload bounds/magnitudes and paper Table 6 cross-check",
+      "result": "legacy layout is friction, damping, armature, encoder bias, delay; public-order counterfactual rejected",
+      "formal_change": false,
+      "status": "CLOSED / high-confidence artifact-and-paper evidence"
+    },
+    {
+      "branch": "fit block internal order",
+      "hypothesis": "the 12-value blocks are already LF RF LH RH",
+      "diagnostic": "rounding-aware comparison of both frozen hypotheses against all Table 6 blocks",
+      "result": "LF LH RF RH wins all four blocks; RAW-to-CANONICAL mapping retained",
+      "formal_change": false,
+      "status": "CLOSED / strong inference"
+    },
+    {
+      "branch": "bias effective law",
+      "hypothesis": "legacy torque identity justifies replacing public q_true-bias feedback with q_true feedback",
+      "diagnostic": "single-variable legacy-effective counterfactual replay",
+      "result": "position RMSE worsens from 0.0128183648 to 0.0150588654 rad; Branch A closed",
+      "formal_change": false,
+      "status": "CLOSED as a trajectory-generating correction"
+    },
+    {
+      "branch": "delay/FIFO",
+      "hypothesis": "delay initialization/order or pre/post-saturation FIFO is wrong",
+      "diagnostic": "unit tests, zero-padded 3-step trace identity, and torque-field timing forensic",
+      "result": "delay=3; first three interval outputs zero; applied[t]=saturated[t-3] identity error 0",
+      "formal_change": false,
+      "status": "CLOSED"
+    },
+    {
+      "branch": "DCMotor",
+      "hypothesis": "four-quadrant envelope implementation explains replay divergence",
+      "diagnostic": "four-quadrant unit tests and full trace saturation audit",
+      "result": "unit tests pass; released replay has 0 clipped sample-joints",
+      "formal_change": false,
+      "status": "CLOSED for this trajectory"
+    },
+    {
+      "branch": "torque timing",
+      "hypothesis": "logged torque is compared at the wrong pre/post-delay state boundary",
+      "diagnostic": "pre/post FIFO and lag sweep",
+      "result": "three-step delayed/applied-like field recorded at the following state boundary; pre-delay lag -4 and post-delay lag -1 are equivalent",
+      "formal_change": false,
+      "status": "CLOSED for diagnostic alignment"
+    },
+    {
+      "branch": "torque field semantics",
+      "hypothesis": "near-exact torque algebra proves the formal actuator law must change",
+      "diagnostic": "18 frame candidates plus legacy-effective causal replay",
+      "result": "applied-like raw-bias identity found, but its causal counterfactual worsens position and does not close torque",
+      "formal_change": false,
+      "status": "CLOSED as correction basis; exporter semantics remain strong inference"
+    },
+    {
+      "branch": "target timing",
+      "hypothesis": "target is naturally shifted by one sample",
+      "diagnostic": "fixed target[t-1], target[t], and target[t+1] full replays",
+      "result": "RMSE t-1=0.0147492481, t=0.0128183648, t+1=0.0131611026 rad; none passes",
+      "formal_change": false,
+      "status": "CLOSED"
+    },
+    {
+      "branch": "initial qdot",
+      "hypothesis": "zero initial velocity causes the full residual",
+      "diagnostic": "zero, sim_method, real, and forward-difference initial qdot",
+      "result": "no candidate passes; best counterfactual is 0.012816372 rad versus formal 0.012818365 rad and lacks legacy provenance",
+      "formal_change": false,
+      "status": "CLOSED"
+    },
+    {
+      "branch": "float precision",
+      "hypothesis": "loader float conversion causes accumulation",
+      "diagnostic": "raw payload dtype and source-to-loader error inventory",
+      "result": "all source fields are already float32 and every source-to-loader error is zero",
+      "formal_change": false,
+      "status": "CLOSED"
+    },
+    {
+      "branch": "timestamp jitter",
+      "hypothesis": "recorded wall-clock jitter should drive variable-dt simulation",
+      "diagnostic": "overall/per-joint correlation with velocity and acceleration residual; no variable-dt replay",
+      "result": "maximum absolute correlation 0.00498584045",
+      "formal_change": false,
+      "status": "CLOSED"
+    },
+    {
+      "branch": "self-collision",
+      "hypothesis": "legacy replay used self-collision ON",
+      "diagnostic": "OFF/ON fixed A/B with contact audit",
+      "result": "OFF has zero contacts and 0.012818365 rad; ON has contacts at all 6679 transitions and 0.189955519 rad",
+      "formal_change": false,
+      "status": "CLOSED as a candidate improvement; exact legacy setting remains unresolved"
+    },
+    {
+      "branch": "armature",
+      "hypothesis": "use_physx_armature mode explains the local residual",
+      "diagnostic": "single-property OFAT",
+      "result": "position/velocity/acceleration changes are 0.0000%/0.0000%/0.0000%",
+      "formal_change": false,
+      "status": "CLOSED"
+    },
+    {
+      "branch": "collapse fixed joints",
+      "hypothesis": "fixed-joint collapse mismatch materially explains the transition residual",
+      "diagnostic": "single-property OFAT",
+      "result": "position/velocity/acceleration changes are -1.9722%/-2.2468%/-2.2468%; below material rule and no legacy provenance",
+      "formal_change": false,
+      "status": "CLOSED as a formal correction basis"
+    },
+    {
+      "branch": "damping null",
+      "hypothesis": "fitted DOF damping is incorrectly applied",
+      "diagnostic": "damping=0 only; one-step plus H8/H32/H128/full",
+      "result": "one-step acceleration +2043.1% and H32 +1912.9% versus baseline",
+      "formal_change": false,
+      "status": "CLOSED; removal dramatically worsens"
+    },
+    {
+      "branch": "friction null",
+      "hypothesis": "fitted DOF friction coefficient is incorrectly applied",
+      "diagnostic": "friction=0 only; one-step plus H8/H32/H128/full",
+      "result": "one-step acceleration +90.9% and H32 +58.9% versus baseline",
+      "formal_change": false,
+      "status": "CLOSED; removal worsens"
+    },
+    {
+      "branch": "both null",
+      "hypothesis": "joint properties mutually cancel and jointly cause the residual",
+      "diagnostic": "damping=0 and friction=0; one-step plus horizons",
+      "result": "one-step acceleration +2192.9% and H32 +2020.2% versus baseline",
+      "formal_change": false,
+      "status": "CLOSED; removal dramatically worsens"
+    },
+    {
+      "branch": "substeps=2",
+      "hypothesis": "higher internal integration resolution closes the local residual",
+      "diagnostic": "dt fixed at 0.0025, one control/FIFO update, PhysX substeps 1 to 2",
+      "result": "one-step acceleration +19.0% and H32 +4.3%",
+      "formal_change": false,
+      "status": "CLOSED; worsens"
+    },
+    {
+      "branch": "velocity_iterations=1",
+      "hypothesis": "one TGS velocity iteration closes the velocity transition residual",
+      "diagnostic": "velocity iterations 0 to 1, position iterations 4 and substeps 1 frozen",
+      "result": "one-step acceleration +433.3% and H32 +217.4%",
+      "formal_change": false,
+      "status": "CLOSED; dramatically worsens"
+    }
+  ],
+  "unresolved_provenance": [
+    {
+      "item": "legacy ANYmal exact asset identity/hash",
+      "status": "UNRESOLVED / NOT PUBLICLY RECOVERED"
+    },
+    {
+      "item": "legacy Isaac Gym asset/importer configuration",
+      "status": "UNRESOLVED / NOT PUBLICLY RECOVERED"
+    },
+    {
+      "item": "legacy data.npy exporter implementation",
+      "status": "UNRESOLVED / NOT PUBLICLY RECOVERED"
+    },
+    {
+      "item": "legacy dof_pos/dof_vel/dof_torques exact logging semantics",
+      "status": "UNRESOLVED / NOT PUBLICLY RECOVERED"
+    },
+    {
+      "item": "paper-era full Isaac Gym SysID simulator source",
+      "status": "UNRESOLVED / NOT PUBLICLY RECOVERED"
+    },
+    {
+      "item": "paper-era complete PhysX configuration",
+      "status": "UNRESOLVED / NOT PUBLICLY RECOVERED"
+    }
+  ],
+  "stage0C_R": {
+    "status": "PASS",
+    "approval_type": "explicit_human_approval",
+    "approved_option": "C",
+    "definition": "Public evidence is sufficient to begin an auditable independent locomotion reproduction while preserving the unresolved exact legacy-replay discrepancy.",
+    "checklist": [
+      {
+        "id": "R1",
+        "condition": "parameter decoding stable",
+        "status": "PASS",
+        "evidence": [
+          "artifacts/decoded_fit.json",
+          "artifacts/fit_order_diagnostics/final_order_audit_v2/report.json"
+        ]
+      },
+      {
+        "id": "R2",
+        "condition": "public actuator semantics evidence-backed",
+        "status": "PASS",
+        "evidence": [
+          "artifacts/actuator_unit.json",
+          "artifacts/bias_law_counterfactual/final_v2/report.json"
+        ]
+      },
+      {
+        "id": "R3",
+        "condition": "deterministic implementation",
+        "status": "PASS",
+        "evidence": [
+          "artifacts/p4_p5_audit/20260901T040000Z/report.json",
+          "artifacts/p4_p5_audit/20260901T050000Z/report.json"
+        ],
+        "selected_metric_max_difference": 0.0
+      },
+      {
+        "id": "R4",
+        "condition": "local transition close",
+        "status": "PASS",
+        "evidence": [
+          "artifacts/plant_audit/20260831T144000Z/report.json"
+        ],
+        "note": "Evidence assessment, not a new result-selected threshold."
+      },
+      {
+        "id": "R5",
+        "condition": "released trajectory substantially reproduced with exact failures disclosed",
+        "status": "PASS",
+        "evidence": [
+          "artifacts/replay_fit/20260831T073349Z/metrics.json"
+        ],
+        "note": "Stage 0C-E and the original 1.2x-author fit gate remain FAIL."
+      },
+      {
+        "id": "R6",
+        "condition": "no remaining evidence-backed implementation correction",
+        "status": "PASS",
+        "evidence": [
+          "artifacts/reproducibility_boundary_review/report.json"
+        ]
+      },
+      {
+        "id": "R7",
+        "condition": "residual propagation mechanism characterized",
+        "status": "PASS",
+        "evidence": [
+          "artifacts/accumulation_audit/20260901T020000Z/report.json"
+        ],
+        "note": "Propagation is characterized; root cause is not claimed to be unique."
+      },
+      {
+        "id": "R8",
+        "condition": "discrepancy overlaps unresolved provenance",
+        "status": "PASS",
+        "evidence": [
+          "artifacts/reproducibility_boundary_review/report.json"
+        ]
+      },
+      {
+        "id": "R9",
+        "condition": "no re-identification performed",
+        "status": "PASS",
+        "evidence": [
+          "artifacts/p4_p5_audit/20260901T050000Z/report.json"
+        ]
+      },
+      {
+        "id": "R10",
+        "condition": "uncertainty can be propagated into Stage 1",
+        "status": "PASS",
+        "evidence": [
+          "provenance/stage0_freeze.json",
+          "README.md"
+        ],
+        "requirement": "mandatory provenance banner in every Stage 1+ report, README section, and experiment manifest"
+      }
+    ]
+  },
+  "Stage_1_authorization": {
+    "locomotion_implementation_authorized": true,
+    "authorization_scope": "freeze observation/action/reward/terrain/PPO specifications, implement the locomotion environment, then run smoke tests",
+    "PPO_training_started": false,
+    "not_performed_in_freeze_commit": [
+      "GPU jobs",
+      "reward implementation",
+      "terrain implementation",
+      "PPO implementation",
+      "PPO training"
+    ]
+  },
+  "mandatory_Stage1_provenance_banner": "Reproduction status:\nPublic-information independent reproduction.\n\nExact PACE legacy SysID replay:\nUNRESOLVED / Stage 0C-E FAIL.\n\nKnown residual:\noverall 0.012818 rad on released legacy replay.\n\nLegacy exact asset and paper-era simulator configuration:\nnot publicly resolved.",
+  "retained_evidence": {
+    "policy": "Freeze does not delete or conceal Stage 0 failure evidence.",
+    "reports": {
+      "replay_fit": {
+        "path": "artifacts/replay_fit/20260831T073349Z/metrics.json",
+        "sha256": "7b712f4eae3cd5df3a3c170b4eb605d8f6fcc26d5f22dcdb70be7ad111497442"
+      },
+      "residual_diagnostics": {
+        "path": "artifacts/residual_diagnostics/20260831T080620Z/report.json",
+        "sha256": "a1f43593878d8ffd3104f04ea35859812ea608cdac1cbc38c8e8c47a6bb05550"
+      },
+      "joint_order_diagnostics": {
+        "path": "artifacts/joint_order_diagnostics/20260831T083839Z/report.json",
+        "sha256": "efb88dd6b25113997ddff5958fadf7318c8565b64a2039c3454a35ae39ddacc2"
+      },
+      "torque_semantics": {
+        "path": "artifacts/torque_semantics/20260831T091024Z/report.json",
+        "sha256": "9f38b25c6f850fdc2e9d548d9e2175550bbad6130cfeca6ee96a947006370892"
+      },
+      "fit_order_diagnostics": {
+        "path": "artifacts/fit_order_diagnostics/final_order_audit_v2/report.json",
+        "sha256": "7ad3b17a9b5e8729bf04dffe0558085ba84fdc4d804ec6fbefe04c711cfd3569"
+      },
+      "bias_law_counterfactual": {
+        "path": "artifacts/bias_law_counterfactual/final_v2/report.json",
+        "sha256": "58a4103fff4775ec24009e7f07c8ed0e764f760a3cf324b019faefb4797db9bb"
+      },
+      "plant_audit": {
+        "path": "artifacts/plant_audit/20260831T144000Z/report.json",
+        "sha256": "75dba436f098ee3c3856bfdd921b48571c597ba0d5aa46d610e2a0678f295eb1"
+      },
+      "accumulation_audit": {
+        "path": "artifacts/accumulation_audit/20260901T020000Z/report.json",
+        "sha256": "e536440b1cc1447d3c75bceb7b9085461a9b1cf6df859d1e6d974772edc5b5a1"
+      },
+      "p4_p5_audit": {
+        "path": "artifacts/p4_p5_audit/20260901T050000Z/report.json",
+        "sha256": "a57e0c02ba5aefe8e53334caedfbf737ef0ba09251b5dd3f48f1df1dc212ba16"
+      },
+      "reproducibility_boundary_review": {
+        "path": "artifacts/reproducibility_boundary_review/report.json",
+        "sha256": "b63673f1e939ec065cfa14716fa764e14de3df2d542a664fb3903a3c914fa321"
+      }
+    }
+  },
+  "freeze_rules": {
+    "Stage_0_parameter_hunting": "STOPPED",
+    "exact_threshold_changes": "FORBIDDEN",
+    "Stage_0_actuator_or_physics_changes": "FORBIDDEN without new provenance and a separately approved review",
+    "Stage_1_claim": "public-information independent reproduction only",
+    "forbidden_claim": "PACE reproduced exactly"
+  }
+}
