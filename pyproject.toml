@@ -3,15 +3,16 @@ requires = ["setuptools>=61"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "pace-stage0-reproduction"
+name = "pace-leggedgym-reproduction"
 version = "0.1.0"
-description = "Frozen Stage 0 PACE actuator replay for ANYmal D in Isaac Gym Preview 4"
+description = "PACE ANYmal D reconstruction with frozen Stage 0 and task-only Stage 1"
 requires-python = ">=3.8,<3.9"
 dependencies = []
 
 [project.scripts]
 pace-stage0 = "pace_stage0.cli:main"
+pace-stage1-smoke = "pace_stage1.smoke:main"
+pace-stage1-ppo-smoke = "pace_stage1.ppo_smoke:main"
 
 [tool.setuptools.packages.find]
 where = ["src"]
-

@@ -1,0 +1,327 @@
+{
+  "schema": "pace_stage1.task_only_provenance.v1",
+  "status": {
+    "Stage_1_Task_only_MDP": "IMPLEMENTED / GATE PASS",
+    "PPO_started": false,
+    "formal_training_started": false,
+    "formal_checkpoint_created": false
+  },
+  "mandatory_banner": "Reproduction status:\nPublic-information independent reproduction.\n\nExact PACE legacy SysID replay:\nUNRESOLVED / Stage 0C-E FAIL.\n\nKnown residual:\noverall 0.012818 rad on released legacy replay.\n\nLegacy exact asset and paper-era simulator configuration:\nnot publicly resolved.",
+  "history": {
+    "branch": "codex/stage1-task-only-mdp",
+    "start_tag": "stage0-public-reproduction-ready",
+    "start_commit": "0fe25899e63a7be0a5c73a0184f7390352d9f6be",
+    "preserved_failed_node": {
+      "tag": "stage1-ppo-ready",
+      "commit": "c8454db94978080b9b7f7dfbefc9f95134954bab",
+      "label": "PACE energy MDP v1 Phase A failure",
+      "modified": false
+    }
+  },
+  "mdp": {
+    "state": {
+      "value": "48-D actor proprioception and 353-D asymmetric critic observation",
+      "source": "PACE explicit + LeggedGym inherited + reconstruction assumption",
+      "confidence": "medium",
+      "notes": "PACE fixes the public dimensions/components; scales/noise and the 294-point scan geometry use frozen public reconstruction choices."
+    },
+    "action": {
+      "value": "12 canonical joint offsets mapped to absolute targets through the frozen Stage 0 interface",
+      "source": "PACE explicit + LeggedGym inherited",
+      "confidence": "high",
+      "notes": "No actuator behavior is introduced in Stage 1."
+    },
+    "transition": {
+      "value": "Stage 0 ANYmal asset, identified dynamics, PACE actuator, 3-step delay, 400 Hz physics and 100 Hz policy",
+      "source": "Stage 0 frozen",
+      "confidence": "high for the public reconstruction boundary",
+      "notes": "The unresolved Stage 0C-E legacy residual remains unchanged."
+    },
+    "reward": {
+      "value": "task-only reward; no energy optimization objective",
+      "source": "PACE explicit task structure + LeggedGym inherited execution semantics",
+      "confidence": "high for execution order; medium for reconstructed FTD schedule use",
+      "notes": "The FTD schedule remains a task regularizer; no energy term, cost, constraint or budget exists."
+    },
+    "termination": {
+      "value": "base contact or strict >2000-step timeout; reward computed on terminal pre-reset state",
+      "source": "LeggedGym inherited",
+      "confidence": "high",
+      "notes": "Only non-timeout termination can receive the post-clipping termination term; timeout is bootstrapped by rsl_rl."
+    }
+  },
+  "observation": {
+    "order_and_dimension": {
+      "value": [
+        "base linear velocity body [3]",
+        "base angular velocity body [3]",
+        "projected gravity body [3]",
+        "vx/vy/yaw-rate command [3]",
+        "encoder joint position [12]",
+        "joint velocity [12]",
+        "previous action [12]"
+      ],
+      "source": "PACE explicit",
+      "confidence": "high",
+      "notes": "Actor dimension is 48."
+    },
+    "scale": {
+      "value": "lin_vel=2.0, ang_vel=0.25, gravity=1.0, command=(2.0,2.0,0.25), dof_pos=1.0, dof_vel=0.05, action=1.0",
+      "source": "LeggedGym inherited",
+      "confidence": "high",
+      "notes": "Applied componentwise before clipping."
+    },
+    "clipping": {
+      "value": [-100.0, 100.0],
+      "source": "LeggedGym inherited",
+      "confidence": "high",
+      "notes": "Actor and critic use the same absolute clip."
+    },
+    "noise": {
+      "value": "independent uniform noise with fixed post-scale half-ranges; commands and previous action have zero noise",
+      "source": "LeggedGym inherited + reconstruction assumption",
+      "confidence": "medium",
+      "notes": "PACE states i.i.d. noise but does not publish every amplitude/distribution detail."
+    },
+    "normalization": {
+      "value": "fixed component scales; no running empirical normalization",
+      "source": "LeggedGym inherited",
+      "confidence": "high",
+      "notes": "No observation statistics are learned."
+    },
+    "critic": {
+      "value": "noise-free actor[48]+base wrench[6]+friction[1]+foot contacts[4]+height scan[294]=353",
+      "source": "PACE explicit + reconstruction assumption",
+      "confidence": "medium",
+      "notes": "The 21x14 height grid is a frozen reconstruction satisfying the public 294-value dimension."
+    }
+  },
+  "action": {
+    "dimension_and_order": {
+      "value": "12 DOF, canonical LF/RF/LH/RH with HAA/HFE/KFE within each leg",
+      "source": "Stage 0 frozen",
+      "confidence": "high",
+      "notes": "Asset order is gathered into the frozen canonical order."
+    },
+    "scale_and_pose": {
+      "value": "0.5 rad; q0=(0,0.4,-0.8) front and (0,-0.4,0.8) hind",
+      "source": "LeggedGym inherited",
+      "confidence": "high",
+      "notes": "The adapter also preserves the frozen 5-degree inward hard-limit band."
+    },
+    "mapping": {
+      "value": "action -> LocomotionTargetAdapter -> absolute q_target -> unchanged PACEActuatorCore",
+      "source": "PACE explicit + Stage 0 frozen",
+      "confidence": "high",
+      "notes": "Actuator saturation and delay semantics remain Stage 0-owned."
+    }
+  },
+  "command": {
+    "sampling": {
+      "value": "vx,vy,yaw_rate in [-1,1], heading in [-3.14,3.14]",
+      "source": "LeggedGym inherited",
+      "confidence": "high",
+      "notes": "Uniform independent sampling."
+    },
+    "heading": {
+      "value": "yaw_rate=clip(0.5*wrap(target_heading-current_heading),-1,1)",
+      "source": "LeggedGym inherited",
+      "confidence": "high",
+      "notes": "Heading mode is enabled."
+    },
+    "resampling": {
+      "value": "10 s / 1000 policy steps",
+      "source": "LeggedGym inherited",
+      "confidence": "high",
+      "notes": "Commands are also resampled on reset."
+    },
+    "standing": {
+      "value": "planar command norm <=0.2 becomes vx=vy=0; heading remains active",
+      "source": "LeggedGym inherited",
+      "confidence": "high",
+      "notes": "No separate standing reward is enabled."
+    }
+  },
+  "reward": {
+    "terms": [
+      {
+        "value": "velocity_tracking, scale=0.2, two exponential planar/yaw tracking components",
+        "source": "PACE explicit",
+        "confidence": "high",
+        "notes": "Tracking sigma is 0.25."
+      },
+      {
+        "value": "collision, scale=-1.0, thigh contact or joint hard-limit violation",
+        "source": "PACE explicit",
+        "confidence": "high",
+        "notes": "Base contact is termination, not silently folded into this term."
+      },
+      {
+        "value": "FTD, scale=-0.1, touchdown-foot maximum speed over three policy samples",
+        "source": "PACE explicit",
+        "confidence": "high",
+        "notes": "A 500-iteration half-life schedule applies only to FTD in Stage 1."
+      },
+      {
+        "value": "termination, scale=-0.0, non-timeout indicator",
+        "source": "LeggedGym inherited",
+        "confidence": "high",
+        "notes": "It is explicitly evaluated after positive clipping even though the inherited scale is zero."
+      }
+    ],
+    "aggregation": {
+      "value": "multiply non-termination scales by dt=0.01, sum, clamp minimum to zero, then add termination*dt",
+      "source": "LeggedGym inherited",
+      "confidence": "high",
+      "notes": "This restores execution semantics rather than only copying formulas."
+    },
+    "only_positive_rewards": {
+      "value": true,
+      "source": "LeggedGym inherited",
+      "confidence": "high",
+      "notes": "Negative non-termination aggregates are clipped before the termination term."
+    },
+    "forbidden": [
+      "energy reward",
+      "energy penalty",
+      "energy curriculum",
+      "cost critic",
+      "Lagrangian multiplier",
+      "budget constraint"
+    ]
+  },
+  "termination": {
+    "contact": {
+      "value": "base contact force norm >1 N",
+      "source": "LeggedGym inherited",
+      "confidence": "high",
+      "notes": "Produces a non-timeout done."
+    },
+    "timeout": {
+      "value": "episode_length_steps >2000, therefore termination occurs at step 2001",
+      "source": "LeggedGym inherited",
+      "confidence": "high",
+      "notes": "Timeout is reported separately in infos."
+    },
+    "ordering": {
+      "value": "refresh -> callbacks -> termination -> reward -> reset -> returned observation",
+      "source": "LeggedGym inherited",
+      "confidence": "high",
+      "notes": "Terminal reward uses the pre-reset state and done masks."
+    },
+    "bootstrap": {
+      "value": "reward += gamma*V(s_terminal) for timeout only",
+      "source": "rsl_rl v1.0.2",
+      "confidence": "high",
+      "notes": "Contact terminations are not bootstrapped."
+    }
+  },
+  "terrain_and_randomization": {
+    "terrain": {
+      "value": "10x20 trimesh curriculum with slopes, rough slopes, stairs and discrete obstacles",
+      "source": "LeggedGym inherited",
+      "confidence": "high",
+      "notes": "Numeric generator values are fixed to commit 8fa29acc."
+    },
+    "friction": {
+      "value": [0.5, 1.25],
+      "source": "LeggedGym inherited",
+      "confidence": "high",
+      "notes": "Randomized per environment."
+    },
+    "pushes": {
+      "value": "every 15 s, planar velocity in [-1,1] m/s",
+      "source": "LeggedGym inherited",
+      "confidence": "high",
+      "notes": "Disabled only in deterministic smoke."
+    },
+    "initialization": {
+      "value": "joint multiplier [0.5,1.5], base velocity [-0.5,0.5], rough-terrain xy offset [-1,1] m",
+      "source": "LeggedGym inherited + Stage 0 frame mapping",
+      "confidence": "high",
+      "notes": "Actuator FIFO and previous action are reset per environment."
+    },
+    "excluded": {
+      "value": "no dynamics, base-mass or motor-strength randomization",
+      "source": "PACE explicit category boundary",
+      "confidence": "high",
+      "notes": "No energy-specific randomization exists."
+    }
+  },
+  "ppo_validation": {
+    "configuration": {
+      "value": "rsl_rl v1.0.2, actor/critic 512-256-128 ELU, gamma=0.99, lambda=0.95, rollout=24, 4 minibatches, 5 epochs, adaptive KL Adam",
+      "source": "LeggedGym inherited",
+      "confidence": "high",
+      "notes": "PPO is a validation tool and not a Stage 1 research variable."
+    },
+    "smoke": {
+      "value": "2 CPU plane envs, 2 rollout steps, one in-memory update, seed 123, no checkpoint",
+      "source": "reconstruction assumption",
+      "confidence": "high",
+      "notes": "Bounded pipeline validation only; it is not a formal seed or result."
+    }
+  },
+  "unresolved_assumptions": [
+    {
+      "value": "21x14 placement of the public 294-value critic height scan",
+      "source": "reconstruction assumption",
+      "confidence": "low",
+      "notes": "PACE publishes the dimension but not a complete paper-era grid configuration."
+    },
+    {
+      "value": "observation noise amplitudes/distribution",
+      "source": "LeggedGym inherited",
+      "confidence": "medium",
+      "notes": "PACE states i.i.d. noise without all public numeric details."
+    },
+    {
+      "value": "500-iteration FTD-only half-life in the task-only stage",
+      "source": "PACE explicit schedule form + reconstruction assumption",
+      "confidence": "medium",
+      "notes": "The public schedule jointly regularizes penalties; Stage 1 removes the prohibited term and retains FTD as a task regularizer."
+    }
+  ],
+  "stage0_integrity": {
+    "freeze_commit": "0fe25899e63a7be0a5c73a0184f7390352d9f6be",
+    "files": {
+      "src/pace_stage0/actuator.py": "0ecbbb7edd8575c20346a64d8e774c41fba14d81200ca56a8cf1d854618ecb79",
+      "src/pace_stage0/target_adapter.py": "6264d020b7f9726bb86df07bee0c99c180c677eeba1521de6b4b83f8cae7fe07",
+      "src/pace_stage0/constants.py": "b06ff80d720f8ed348d10953f401206b5c3ec98308ba50027276b402638078e6",
+      "provenance/stage0_freeze.json": "05b74f12302db93852c397821444872e868ad5e955c6c57faf43441bd2206bed"
+    },
+    "frozen_semantics_modified": false
+  },
+  "verification": {
+    "tests": {
+      "result": "96/96 PASS",
+      "stage0": "71/71 PASS",
+      "stage1": "25/25 PASS"
+    },
+    "environment_smoke": {
+      "plane_2_env_3_step": "PASS",
+      "production_trimesh_1_env_1_step": "PASS",
+      "actor_dimension": 48,
+      "critic_dimension": 353,
+      "finite": true,
+      "checkpoint_created": false
+    },
+    "ppo_smoke": {
+      "result": "PASS",
+      "classification": "SMOKE / NON-EXPERIMENTAL",
+      "rsl_rl": "1.0.2",
+      "num_envs": 2,
+      "rollout_steps": 2,
+      "in_memory_updates": 1,
+      "value_loss": 0.11618571069454901,
+      "surrogate_loss": -0.0695416409522295,
+      "finite": true,
+      "checkpoint_created": false
+    },
+    "formal_PPO_started": false,
+    "formal_checkpoint_created": false
+  },
+  "gate": {
+    "Stage_1_Task_only_MDP_gate": "PASS"
+  }
+}

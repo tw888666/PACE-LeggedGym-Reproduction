@@ -8,7 +8,7 @@ Stage 0B       FROZEN
 Stage 0C-E     FAIL / unresolved
 Stage 0C-R     PASS
 Stage 0        FROZEN
-Stage 1        AUTHORIZED / not started
+Stage 1        TASK-ONLY MDP GATE PASS
 PPO training   NOT STARTED
 ```
 
@@ -45,6 +45,50 @@ Every future Stage 1+ README section, experiment manifest, training report, and 
 report must retain that banner. Stage 1 locomotion implementation is authorized, but it
 has not been started in this freeze commit. PPO implementation, GPU jobs, and PPO training
 have not started.
+
+## Stage 1 Task-only MDP（仅任务奖励马尔可夫决策过程）
+
+新的 Stage 1 位于 `codex/stage1-task-only-mdp` branch（分支），并从
+`stage0-public-reproduction-ready` 直接创建。历史节点 `stage1-ppo-ready` / `c8454db`
+保持不变，标记为 `PACE energy MDP v1 Phase A failure`，不作为本分支的代码起点。
+
+本阶段仅验证“冻结 Stage 0 physics reconstruction（物理重建）后，ANYmal locomotion
+task MDP（运动任务马尔可夫决策过程）是否闭合”。Actor observation（策略观测）为
+48 维，critic observation（价值网络观测）为 353 维；12 维 action（动作）经
+`LocomotionTargetAdapter` 转为绝对关节目标，再进入未修改的 Stage 0
+`PACEActuatorCore`。
+
+Reward（奖励）只有以下执行项：
+
+- velocity tracking（速度跟踪），scale（系数）`0.2`；
+- collision（碰撞），scale `-1.0`；
+- FTD / foot touchdown（足端触地），scale `-0.1`，保留 500 iteration（迭代）半衰期；
+- termination bookkeeping（终止记账），继承 scale `-0.0`。
+
+完整执行顺序继承 LeggedGym（腿式机器人训练框架）：所有非终止项乘
+`policy_dt=0.01 s` 后求和，`only_positive_rewards=true` 时先裁剪到非负，再追加仅对
+非 timeout（超时）有效的 termination reward（终止奖励）。Reward 在 terminal
+pre-reset state（终止前重置状态）上计算，随后 reset；timeout 通过
+`rsl_rl v1.0.2` 的 `gamma*V` 规则自举。该顺序避免“发生终止但奖励无法解释”。
+
+Stage 1 没有 energy reward（能耗奖励）、energy penalty（能耗惩罚）、energy
+curriculum（能耗课程）、cost critic（代价价值网络）、Lagrangian multiplier
+（拉格朗日乘子）或 budget constraint（预算约束）。权威字段与来源分类见
+[`provenance/stage1_task_only_manifest.json`](provenance/stage1_task_only_manifest.json)。
+
+验证命令均为单行：
+
+```bash
+conda run --no-capture-output -n bruce_gym env PYTHONPATH=src python -m unittest discover -s tests -v
+conda run --no-capture-output -n bruce_gym env PYTHONPATH=src python -m pace_stage1.smoke --num-envs 2 --steps 3 --seed 123
+conda run --no-capture-output -n bruce_gym env PYTHONPATH=src python -m pace_stage1.smoke --num-envs 1 --steps 1 --seed 123 --terrain-mode trimesh
+conda run --no-capture-output -n bruce_gym env PYTHONPATH=src python -m pace_stage1.ppo_smoke
+```
+
+测试结果为 `96/96 PASS`：Stage 0 保留 `71/71`，Stage 1 新增 `25/25`。Plane
+（平面）和 production trimesh（生产三角网格）环境 smoke（冒烟验证）通过；一次
+2-env、2-step 的内存内 PPO 更新也通过，loss（损失）有限，且未创建 checkpoint。
+正式 PPO、正式 seed、baseline evaluation（基线评估）均未启动。
 
 ## Frozen Stage 0 scope
 
