@@ -44,6 +44,7 @@ conda run -n bruce_gym env PYTHONPATH=src python -m pace_stage0.cli torque_seman
 conda run -n bruce_gym env PYTHONPATH=src python -m pace_stage0.cli fit_order_diagnostics
 conda run -n bruce_gym env PYTHONPATH=src python -m pace_stage0.cli bias_law_counterfactual
 conda run -n bruce_gym env PYTHONPATH=src python -m pace_stage0.cli plant_audit
+conda run -n bruce_gym env PYTHONPATH=src python -m pace_stage0.cli accumulation_audit
 ```
 
 `frame_forensics` is read-only: it computes H0/H+/H- frame diagnostics and writes
@@ -109,3 +110,9 @@ acceleration transitions under the frozen public teacher torque and the secondar
 torque, snapshots all runtime mass/COM/inertia properties, verifies zero contact, then runs
 only the mandatory `use_physx_armature` and `collapse_fixed_joints` OFAT diagnostics. It
 does not select a new formal baseline or run locomotion/PPO.
+
+`accumulation_audit` bypasses the formal loader for a read-only source-dtype/time-grid
+inventory, evaluates position-derived velocity hypotheses at lag -3..+3, and runs a frozen
+multi-environment diagnostic matrix covering four initial velocities, target timing ±1,
+teacher-forcing horizons 1..512/full, and q-only/qdot-only resets. It preserves the formal
+actuator, delay FIFO, initial state, target timing, plant parameters, and Stage 0C gates.

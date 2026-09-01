@@ -85,6 +85,13 @@ def _parser() -> argparse.ArgumentParser:
     )
     plant_audit.add_argument("--device-id", type=int, default=0)
     plant_audit.add_argument("--output-dir", type=Path)
+
+    accumulation = sub.add_parser(
+        "accumulation_audit",
+        help="Audit velocity logging semantics and closed-loop error accumulation",
+    )
+    accumulation.add_argument("--device-id", type=int, default=0)
+    accumulation.add_argument("--output-dir", type=Path)
     return parser
 
 
@@ -191,6 +198,16 @@ def main(argv=None) -> int:
         from .plant_audit import run_plant_audit
 
         report = run_plant_audit(
+            device_id=args.device_id, output_dir=args.output_dir
+        )
+        print(json.dumps(report, indent=2))
+        return 0
+    if args.command == "accumulation_audit":
+        # Isaac Gym Preview 4 must be imported before modules that import torch.
+        from isaacgym import gymapi  # noqa: F401
+        from .accumulation_audit import run_accumulation_audit
+
+        report = run_accumulation_audit(
             device_id=args.device_id, output_dir=args.output_dir
         )
         print(json.dumps(report, indent=2))
