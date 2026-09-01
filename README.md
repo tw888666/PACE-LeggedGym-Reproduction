@@ -8,7 +8,7 @@ Stage 0B       FROZEN
 Stage 0C-E     FAIL / unresolved
 Stage 0C-R     PASS
 Stage 0        FROZEN
-Stage 1        AUTHORIZED / not started
+Stage 1 env    IMPLEMENTED / PRE-PPO GATE PASS
 PPO training   NOT STARTED
 ```
 
@@ -42,9 +42,62 @@ not publicly resolved.
 ```
 
 Every future Stage 1+ README section, experiment manifest, training report, and evaluation
-report must retain that banner. Stage 1 locomotion implementation is authorized, but it
-has not been started in this freeze commit. PPO implementation, GPU jobs, and PPO training
-have not started.
+report must retain that banner. Stage 1 locomotion environment/spec implementation now
+lives on the branch created from this freeze. No formal PPO rollout, GPU job, training
+checkpoint, or research result has been started or created.
+
+## Stage 1 locomotion environment (pre-PPO)
+
+```text
+Reproduction status:
+Public-information independent reproduction.
+
+Exact PACE legacy SysID replay:
+UNRESOLVED / Stage 0C-E FAIL.
+
+Known residual:
+overall 0.012818 rad on released legacy replay.
+
+Legacy exact asset and paper-era simulator configuration:
+not publicly resolved.
+```
+
+Stage 1 follows `LeggedGym standard locomotion + PACE explicit changes + minimal
+reconstruction`. The authoritative fixed values and per-field evidence classifications are
+in [`provenance/stage1_manifest.json`](provenance/stage1_manifest.json); executable values
+are in [`src/pace_stage1/config.py`](src/pace_stage1/config.py).
+
+The actor observation is 48-dimensional in this order: body-frame base linear velocity,
+body-frame base angular velocity, projected gravity, `vx/vy/yaw-rate` command, encoder
+joint position, joint velocity, and previous action. The asymmetric critic input is 353
+dimensional: the noise-free 48-vector plus base wrench, friction, four foot contacts, and a
+294-value base-centered height scan. Actions are 12 canonical joint offsets with scale
+`0.5 rad`; the frozen locomotion target adapter emits absolute targets into the unchanged
+Stage 0 PACE actuator, whose 3-step torque FIFO advances at 400 Hz. The policy target is
+held for four physics steps, so the policy rate is 100 Hz.
+
+The four rewards are PACE velocity tracking (`0.2`), energy (`-16e-5`), collision (`-1`),
+and 3-sample foot-touchdown speed (`-0.1`). Energy and FTD use the public exponential
+500-iteration penalty ramp. The unreleased ANYmal electrical coefficient is fixed to an
+explicit low-confidence reconstruction value; it is not source-confirmed. Terrain is the
+inherited 10x20 LeggedGym mixed-terrain curriculum; friction and pushes are randomized,
+while dynamics, base mass, and motor strength are not randomized.
+
+The only permitted executable validation in this stage is bounded CPU smoke:
+
+```bash
+conda run -n bruce_gym env PYTHONPATH=src \
+  python -m pace_stage1.smoke --num-envs 2 --steps 3 --seed 123
+```
+
+The smoke command enforces `num_envs <= 8` and `steps <= 16`, labels itself
+`SMOKE / NON-EXPERIMENTAL`, does not import rsl_rl, and cannot create a checkpoint.
+
+The frozen semantic suite is `89/89 PASS` (the original Stage 0 `71/71` plus 18
+Stage 1 tests). Both plane and production-trimesh CPU construction/step smoke pass,
+including repeated same-seed tensor-hash equality. Therefore the audited pre-training
+decision is `Stage 1 PPO gate: PASS`; this decision authorizes a later, separate formal
+baseline-training stage but does not itself start PPO.
 
 ## Frozen Stage 0 scope
 

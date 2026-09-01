@@ -11,7 +11,7 @@ dependencies = []
 
 [project.scripts]
 pace-stage0 = "pace_stage0.cli:main"
+pace-stage1-smoke = "pace_stage1.smoke:main"
 
 [tool.setuptools.packages.find]
 where = ["src"]
-
