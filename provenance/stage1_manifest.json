@@ -5,7 +5,7 @@
     "Stage_0C_E_exact_legacy_replay": "FAIL / unresolved",
     "Stage_0C_R_reproduction_readiness": "PASS",
     "Stage_0": "FROZEN",
-    "Stage_1_environment_spec": "IMPLEMENTED / PRE-PPO GATE PASS",
+    "Stage_1_environment_spec": "IMPLEMENTED / PPO READY",
     "PPO_training_started": false,
     "formal_checkpoint_created": false
   },
@@ -301,6 +301,8 @@
   },
   "training_guard": {
     "formal_PPO_allowed_in_this_stage": false,
+    "phase_A_pipeline_validation_authorized_after_stage1_freeze": true,
+    "formal_4096_env_baseline_authorized": false,
     "smoke_limits": {"num_envs_max": 8, "policy_steps_max": 16},
     "smoke_label": "SMOKE / NON-EXPERIMENTAL",
     "smoke_creates_checkpoint": false,
@@ -309,10 +311,10 @@
   "verification": {
     "compileall": "PASS",
     "tests": {
-      "total": 89,
-      "passed": 89,
+      "total": 91,
+      "passed": 91,
       "stage0_retained": 71,
-      "stage1_added": 18
+      "stage1_added": 20
     },
     "smoke": {
       "classification": "SMOKE / NON-EXPERIMENTAL",
@@ -325,12 +327,25 @@
       "checkpoint_created": false,
       "PPO_training_started": false
     },
+    "gpu0_environment_smoke": {
+      "classification": "FINAL PRE-PPO ENVIRONMENT VALIDATION / NON-PAPER",
+      "terrain": "production trimesh",
+      "num_envs": 16,
+      "policy_steps": 3,
+      "actor_shape": [16, 48],
+      "critic_shape": [16, 353],
+      "finite_outputs": true,
+      "runner_created": false,
+      "checkpoint_created": false,
+      "PPO_training_started": false,
+      "result": "PASS"
+    },
     "git_diff_check": "PASS",
     "stage0_frozen_scope_diff": "EMPTY"
   },
   "gate": {
     "Stage_1_PPO_gate": "PASS",
-    "meaning": "environment/spec/provenance/semantic preconditions passed; formal PPO may only begin in a later explicitly authorized task",
+    "meaning": "environment/spec/provenance/semantic preconditions passed; Phase A 1024-env/300-iteration/seed1 pipeline validation is authorized after the stage1-ppo-ready freeze",
     "PPO_training_started": false
   }
 }

@@ -235,6 +235,18 @@ class EvaluationConfig:
 
 
 @dataclass(frozen=True)
+class PhaseAValidationConfig:
+    classification: str = "PHASE A / PIPELINE VALIDATION / NON-PAPER"
+    experiment_name: str = "stage1_smoke_ppo_seed1"
+    num_envs: int = 1024
+    max_iterations: int = 300
+    seed: int = 1
+    sim_device: str = "cuda:0"
+    rl_device: str = "cuda:0"
+    formal_baseline: bool = False
+
+
+@dataclass(frozen=True)
 class Stage1Config:
     schema: str = "pace_stage1.config.v1"
     observation: ObservationConfig = field(default_factory=ObservationConfig)
@@ -246,6 +258,7 @@ class Stage1Config:
     randomization: RandomizationConfig = field(default_factory=RandomizationConfig)
     ppo: PPOConfig = field(default_factory=PPOConfig)
     evaluation: EvaluationConfig = field(default_factory=EvaluationConfig)
+    phase_a_validation: PhaseAValidationConfig = field(default_factory=PhaseAValidationConfig)
 
     def to_dict(self) -> Dict[str, object]:
         return asdict(self)

@@ -8,7 +8,7 @@ Stage 0B       FROZEN
 Stage 0C-E     FAIL / unresolved
 Stage 0C-R     PASS
 Stage 0        FROZEN
-Stage 1 env    IMPLEMENTED / PRE-PPO GATE PASS
+Stage 1        IMPLEMENTED / PPO READY
 PPO training   NOT STARTED
 ```
 
@@ -83,7 +83,7 @@ explicit low-confidence reconstruction value; it is not source-confirmed. Terrai
 inherited 10x20 LeggedGym mixed-terrain curriculum; friction and pushes are randomized,
 while dynamics, base mass, and motor strength are not randomized.
 
-The only permitted executable validation in this stage is bounded CPU smoke:
+The bounded pre-freeze environment smoke entry point is:
 
 ```bash
 conda run -n bruce_gym env PYTHONPATH=src \
@@ -93,11 +93,26 @@ conda run -n bruce_gym env PYTHONPATH=src \
 The smoke command enforces `num_envs <= 8` and `steps <= 16`, labels itself
 `SMOKE / NON-EXPERIMENTAL`, does not import rsl_rl, and cannot create a checkpoint.
 
-The frozen semantic suite is `89/89 PASS` (the original Stage 0 `71/71` plus 18
+The frozen semantic suite is `91/91 PASS` (the original Stage 0 `71/71` plus 20
 Stage 1 tests). Both plane and production-trimesh CPU construction/step smoke pass,
-including repeated same-seed tensor-hash equality. Therefore the audited pre-training
+including repeated same-seed tensor-hash equality. A final GPU0 production-trimesh
+environment-only check also passed with 16 environments for three policy steps; it did
+not construct a runner, start PPO, or create a checkpoint. Therefore the audited pre-training
 decision is `Stage 1 PPO gate: PASS`; this decision authorizes a later, separate formal
 baseline-training stage but does not itself start PPO.
+
+The final freeze authorization is
+[`provenance/stage1_ppo_authorization.json`](provenance/stage1_ppo_authorization.json).
+The only authorized first run is `PHASE A / PIPELINE VALIDATION / NON-PAPER` with
+`1024 env × 300 iterations × seed 1` on `cuda:0`, named
+`stage1_smoke_ppo_seed1`. It must be launched from the peeled target of the annotated
+tag `stage1-ppo-ready`; the launcher rejects a moved Stage 0 tag, dirty worktree,
+wrong rsl_rl version, unavailable GPU0, or any non-Phase-A invocation.
+
+The precise energy-model interpretation boundary is: *the energy term follows the
+publicly available formulation, while unavailable electrical conversion parameters are
+fixed according to the reconstruction manifest.* It must not be described as an exact
+reproduction of the PACE energy model.
 
 ## Frozen Stage 0 scope
 

@@ -27,6 +27,9 @@ from pace_stage1.semantics import (
 
 ROOT = Path(__file__).resolve().parents[1]
 MANIFEST = json.loads((ROOT / "provenance" / "stage1_manifest.json").read_text(encoding="utf-8"))
+AUTHORIZATION = json.loads(
+    (ROOT / "provenance" / "stage1_ppo_authorization.json").read_text(encoding="utf-8")
+)
 
 
 class Stage1ObservationSpecTest(unittest.TestCase):
@@ -241,6 +244,24 @@ class Stage1TerrainPPOAndProvenanceTest(unittest.TestCase):
         self.assertEqual(evaluation.checkpoint_selection, "final iteration; no best-on-evaluation selection")
         self.assertFalse(evaluation.actor_observation_noise)
         self.assertFalse(evaluation.pushes)
+
+    def test_phase_a_authorization_is_bounded_and_non_paper(self):
+        phase = STAGE1_CONFIG.phase_a_validation
+        authorized = AUTHORIZATION["authorized_first_run"]
+        self.assertEqual(AUTHORIZATION["status"]["Stage_1"], "IMPLEMENTED / PPO READY")
+        self.assertFalse(AUTHORIZATION["status"]["PPO_started"])
+        self.assertEqual(phase.num_envs, 1024)
+        self.assertEqual(phase.max_iterations, 300)
+        self.assertEqual(phase.seed, 1)
+        self.assertEqual(phase.sim_device, "cuda:0")
+        self.assertFalse(phase.formal_baseline)
+        self.assertEqual(authorized["experiment_name"], phase.experiment_name)
+        self.assertFalse(authorized["formal_4096_env_baseline_authorized"])
+
+    def test_energy_interpretation_boundary_is_explicit(self):
+        guard = AUTHORIZATION["interpretation_guard"]
+        self.assertIn("unavailable electrical conversion parameters", guard["allowed"])
+        self.assertEqual(guard["forbidden"], "exactly reproduces PACE energy model")
 
 
 if __name__ == "__main__":

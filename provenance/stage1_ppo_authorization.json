@@ -1,0 +1,68 @@
+{
+  "schema": "pace_stage1.ppo_authorization.v1",
+  "status": {
+    "Stage_1": "IMPLEMENTED / PPO READY",
+    "PPO_started": false,
+    "authorization": "APPROVED for Phase A pipeline validation after stage1-ppo-ready freeze"
+  },
+  "stage0_freeze": {
+    "tag": "stage0-public-reproduction-ready",
+    "commit": "0fe25899e63a7be0a5c73a0184f7390352d9f6be",
+    "modified": false
+  },
+  "stage1_freeze": {
+    "tag": "stage1-ppo-ready",
+    "commit_resolution": "annotated_tag_target",
+    "environment_frozen": true,
+    "reward_frozen": true,
+    "observation_frozen": true,
+    "action_frozen": true,
+    "commands_frozen": true,
+    "reset_frozen": true,
+    "terrain_frozen": true,
+    "ppo_config_frozen": true,
+    "evaluation_protocol_frozen": true
+  },
+  "runtime_reference": {
+    "rsl_rl_version": "1.0.2",
+    "rsl_rl_source_commit": "2ad79cf0caa85b91721abfe358105f869a784121"
+  },
+  "authorized_first_run": {
+    "classification": "PHASE A / PIPELINE VALIDATION / NON-PAPER",
+    "experiment_name": "stage1_smoke_ppo_seed1",
+    "num_envs": 1024,
+    "max_iterations": 300,
+    "seed": 1,
+    "sim_device": "cuda:0",
+    "rl_device": "cuda:0",
+    "checkpoint_use": "pipeline diagnostics only; excluded from paper results",
+    "formal_4096_env_baseline_authorized": false
+  },
+  "startup_invariants": [
+    "HEAD equals peeled stage1-ppo-ready tag target",
+    "git tracked worktree is clean",
+    "stage0-public-reproduction-ready still resolves to the frozen Stage 0 commit",
+    "authorization file has PPO_started=false at freeze time",
+    "runtime has rsl_rl v1.0.2",
+    "CUDA device 0 is available",
+    "runtime run_manifest.json is created before runner construction and changed to PPO_started=true immediately after runner construction"
+  ],
+  "remaining_uncertainties": [
+    {
+      "item": "ANYmal electrical conversion parameters",
+      "boundary": "public energy formulation and scale are followed; unavailable electrical conversion values remain the fixed reconstruction in stage1_manifest.json"
+    },
+    {
+      "item": "entropy schedule numeric values",
+      "boundary": "schedule form is PACE-explicit; numeric values are frozen reconstruction assumptions"
+    },
+    {
+      "item": "terrain numeric inheritance",
+      "boundary": "randomized terrain category is PACE-explicit; numeric terrain generator values inherit fixed LeggedGym"
+    }
+  ],
+  "interpretation_guard": {
+    "allowed": "energy term follows the publicly available formulation, while unavailable electrical conversion parameters are fixed according to the reconstruction manifest",
+    "forbidden": "exactly reproduces PACE energy model"
+  }
+}
