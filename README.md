@@ -58,6 +58,9 @@ have not started.
 后得到的项目内消融，不存在于 PACE 论文或官方 release（发布版本）中。因此不得称为
 “PACE Task-only baseline（PACE 仅任务基线）”，也不得作为官方论文基线引用。
 
+> This branch implements a PACE-derived energy-off ablation. It is not an official PACE
+> baseline because the original release does not provide this experiment.
+
 本阶段仅验证“冻结 Stage 0 physics reconstruction（物理重建）后，ANYmal locomotion
 task MDP（运动任务马尔可夫决策过程）是否闭合”。Actor observation（策略观测）为
 48 维，critic observation（价值网络观测）为 353 维；12 维 action（动作）先按
@@ -96,15 +99,18 @@ conda run --no-capture-output -n bruce_gym env PYTHONPATH=src python -m pace_sta
 conda run --no-capture-output -n bruce_gym env PYTHONPATH=src python -m pace_stage1.ppo_smoke
 ```
 
-测试结果为 `100/100 PASS`：Stage 0 保留 `71/71`，Stage 1 为 `29/29`。Plane
+测试结果为 `101/101 PASS`：Stage 0 保留 `71/71`，Stage 1 为 `30/30`。Plane
 （平面）和 production trimesh（生产三角网格）环境 smoke（冒烟验证）通过；一次
 2-env、2-step 的内存内 PPO 更新也通过，loss（损失）有限，且未创建 checkpoint。
 这些 bounded validation（有界验证）不生成正式结果。历史 3000-iteration 运行已经完成，
 但仅归档为 diagnostic evidence（诊断证据），其 checkpoint 不具备 baseline 身份。
 
 训练日志在不改变 MDP 的前提下额外记录 completed episode（已完成回合）的
-`base_contact_rate`、`timeout_rate`、`velocity_tracking_rmse`、`yaw_tracking_rmse` 和
-`mean_abs_action`；policy distribution std（策略分布标准差）继续使用 rsl_rl 原生
+`base_contact_rate`、`timeout_rate`、`velocity_tracking_rmse`、`yaw_tracking_rmse`、
+`mean_abs_action`、`torque_saturation_ratio` 和 `mean_torque_utilization`；后两项分别按
+`abs(raw_pd_torque-saturated_torque)>1e-6 Nm` 与 `abs(raw_pd_torque)/89 Nm` 定义，并在
+4 个 physics substep（物理子步）和 12 个 DOF 上聚合。Policy distribution std
+（策略分布标准差）继续使用 rsl_rl 原生
 `Policy/mean_noise_std`。新的 energy-off ablation 固定入口为：
 
 ```bash

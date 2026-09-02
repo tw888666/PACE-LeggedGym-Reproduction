@@ -28,6 +28,7 @@ from .semantics import (
     build_critic_observation,
     command_yaw_rate,
     command_resample_mask,
+    compute_actuator_logging_metrics,
     compute_policy_target_pipeline,
     compute_task_reward_terms,
     make_target_adapter,
@@ -347,6 +348,8 @@ class Stage1LocomotionEnv:
                 "linear_tracking_squared_error",
                 "yaw_tracking_squared_error",
                 "absolute_action",
+                "torque_saturation_ratio",
+                "mean_torque_utilization",
             )
         }
         x = torch.linspace(-1.5, 1.5, self.cfg.observation.height_scan_shape[0], device=self.device)
@@ -517,6 +520,8 @@ class Stage1LocomotionEnv:
                     self.episode_metric_sums["linear_tracking_squared_error"][completed_ids],
                     self.episode_metric_sums["yaw_tracking_squared_error"][completed_ids],
                     self.episode_metric_sums["absolute_action"][completed_ids],
+                    self.episode_metric_sums["torque_saturation_ratio"][completed_ids],
+                    self.episode_metric_sums["mean_torque_utilization"][completed_ids],
                     self.episode_length_buf[completed_ids],
                     self.time_out_buf[completed_ids],
                 )
@@ -608,10 +613,22 @@ class Stage1LocomotionEnv:
             self.cfg,
             self.target_adapter,
         )
+        torque_saturation_ratio = torch.zeros(self.num_envs, device=self.device)
+        mean_torque_utilization = torch.zeros(self.num_envs, device=self.device)
         for _ in range(self.cfg.action.policy_decimation):
             actuator_step = self.actuator.step(
                 target_pipeline.selected_target, self.dof_pos, self.dof_vel
             )
+            actuator_metrics = compute_actuator_logging_metrics(
+                actuator_step.raw_pd_torque,
+                actuator_step.saturated_torque,
+                effort_limit_nm=self.actuator.effort_limit,
+                saturation_epsilon_nm=(
+                    self.cfg.training_diagnostics.torque_saturation_epsilon_nm
+                ),
+            )
+            torque_saturation_ratio += actuator_metrics["torque_saturation_ratio"]
+            mean_torque_utilization += actuator_metrics["mean_torque_utilization"]
             self.applied_torque = actuator_step.applied_torque
             asset_torque = torch.zeros_like(self.dof_state[:, :, 0])
             gather = torch.as_tensor(self.gather_indices, dtype=torch.long, device=self.device)
@@ -622,6 +639,9 @@ class Stage1LocomotionEnv:
             self.gym.simulate(self.sim)
             self.gym.fetch_results(self.sim, True)
             self.gym.refresh_dof_state_tensor(self.sim)
+
+        torque_saturation_ratio /= self.cfg.action.policy_decimation
+        mean_torque_utilization /= self.cfg.action.policy_decimation
 
         self._refresh()
         self.episode_length_buf += 1
@@ -694,6 +714,8 @@ class Stage1LocomotionEnv:
         self.episode_metric_sums["absolute_action"] += torch.mean(
             torch.abs(self.actions), dim=1
         )
+        self.episode_metric_sums["torque_saturation_ratio"] += torque_saturation_ratio
+        self.episode_metric_sums["mean_torque_utilization"] += mean_torque_utilization
         self.episode_sums["velocity_tracking"] += terms.scaled_velocity_tracking
         self.episode_sums["collision"] += terms.scaled_collision
         self.episode_sums["foot_touchdown"] += terms.scaled_foot_touchdown

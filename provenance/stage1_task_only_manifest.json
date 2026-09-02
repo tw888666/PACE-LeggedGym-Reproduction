@@ -305,11 +305,25 @@
         "timeout_rate",
         "velocity_tracking_rmse",
         "yaw_tracking_rmse",
-        "mean_abs_action"
+        "mean_abs_action",
+        "torque_saturation_ratio",
+        "mean_torque_utilization"
       ],
       "source": "explicit human authorization",
       "confidence": "high",
       "notes": "Logging-only accumulators; reward, observation, action, termination and optimizer semantics are unchanged."
+    },
+    "aggregate_actuator_metrics": {
+      "value": "torque_saturation_ratio=mean(abs(raw_pd_torque-saturated_torque)>1e-6 Nm); mean_torque_utilization=mean(abs(raw_pd_torque)/89 Nm), aggregated over four physics substeps and 12 DOF",
+      "source": "explicit experiment protocol",
+      "confidence": "high",
+      "notes": "Only aggregate scalars are retained on the formal branch. Raw actions, per-DOF torque logging and diagnostic_train.py remain isolated on the diagnostic branch."
+    },
+    "energy_evaluation_boundary": {
+      "value": "post-training evaluation only",
+      "source": "explicit experiment protocol",
+      "confidence": "high",
+      "notes": "No energy value enters reward, observation, PPO update or training-time curriculum in Stage 1."
     },
     "policy_std": {
       "value": "Policy/mean_noise_std",
@@ -362,9 +376,9 @@
   },
   "verification": {
     "tests": {
-      "result": "100/100 PASS",
+      "result": "101/101 PASS",
       "stage0": "71/71 PASS",
-      "stage1": "29/29 PASS"
+      "stage1": "30/30 PASS"
     },
     "environment_smoke": {
       "plane_2_env_3_step": "PASS",

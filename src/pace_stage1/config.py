@@ -97,6 +97,13 @@ class TargetAdapterConfig:
 
 
 @dataclass(frozen=True)
+class TrainingDiagnosticsConfig:
+    """Aggregate logging thresholds; these values do not enter the MDP."""
+
+    torque_saturation_epsilon_nm: float = 1.0e-6
+
+
+@dataclass(frozen=True)
 class CommandConfig:
     dimensions: Tuple[str, ...] = (
         "lin_vel_x_m_s", "lin_vel_y_m_s", "ang_vel_yaw_rad_s", "heading_rad"
@@ -251,6 +258,9 @@ class Stage1Config:
     observation: ObservationConfig = field(default_factory=ObservationConfig)
     action: ActionConfig = field(default_factory=ActionConfig)
     target_adapter: TargetAdapterConfig = field(default_factory=TargetAdapterConfig)
+    training_diagnostics: TrainingDiagnosticsConfig = field(
+        default_factory=TrainingDiagnosticsConfig
+    )
     commands: CommandConfig = field(default_factory=CommandConfig)
     rewards: RewardConfig = field(default_factory=RewardConfig)
     reset: ResetConfig = field(default_factory=ResetConfig)

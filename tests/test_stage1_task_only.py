@@ -14,6 +14,7 @@ from pace_stage1.semantics import (
     build_critic_observation,
     command_resample_mask,
     command_yaw_rate,
+    compute_actuator_logging_metrics,
     compute_policy_target_pipeline,
     compute_task_reward_terms,
     foot_touchdown_schedule,
@@ -241,18 +242,40 @@ class TerminationTerrainPPOProvenanceTest(unittest.TestCase):
             torch.tensor([4.0, 36.0]),
             torch.tensor([1.0, 9.0]),
             torch.tensor([2.0, 9.0]),
+            torch.tensor([1.0, 4.5]),
+            torch.tensor([2.0, 13.5]),
             torch.tensor([4, 9]),
             torch.tensor([False, True]),
         )
         self.assertEqual(set(metrics), {
             "base_contact_rate", "timeout_rate", "velocity_tracking_rmse",
-            "yaw_tracking_rmse", "mean_abs_action",
+            "yaw_tracking_rmse", "mean_abs_action", "torque_saturation_ratio",
+            "mean_torque_utilization",
         })
         self.assertAlmostEqual(metrics["base_contact_rate"].item(), 0.5)
         self.assertAlmostEqual(metrics["timeout_rate"].item(), 0.5)
         self.assertAlmostEqual(metrics["velocity_tracking_rmse"].item(), 1.5)
         self.assertAlmostEqual(metrics["yaw_tracking_rmse"].item(), 0.75)
         self.assertAlmostEqual(metrics["mean_abs_action"].item(), 0.75)
+        self.assertAlmostEqual(metrics["torque_saturation_ratio"].item(), 0.375)
+        self.assertAlmostEqual(metrics["mean_torque_utilization"].item(), 1.0)
+
+    def test_actuator_logging_metrics_are_commanded_vs_saturated(self):
+        commanded = torch.tensor([[0.0, 100.0], [89.0, -178.0]])
+        saturated = torch.clamp(commanded, -89.0, 89.0)
+        metrics = compute_actuator_logging_metrics(
+            commanded,
+            saturated,
+            effort_limit_nm=89.0,
+            saturation_epsilon_nm=1.0e-6,
+        )
+        torch.testing.assert_close(
+            metrics["torque_saturation_ratio"], torch.tensor([0.5, 0.5])
+        )
+        torch.testing.assert_close(
+            metrics["mean_torque_utilization"],
+            torch.tensor([50.0 / 89.0, 1.5]),
+        )
 
     def test_timeout_bootstrap_matches_rsl_rl(self):
         actual = timeout_bootstrap(

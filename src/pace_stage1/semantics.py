@@ -192,6 +192,8 @@ def summarize_completed_episodes(
     linear_tracking_squared_error_sum: torch.Tensor,
     yaw_tracking_squared_error_sum: torch.Tensor,
     absolute_action_sum: torch.Tensor,
+    torque_saturation_ratio_sum: torch.Tensor,
+    mean_torque_utilization_sum: torch.Tensor,
     episode_lengths: torch.Tensor,
     timeouts: torch.Tensor,
 ) -> Dict[str, torch.Tensor]:
@@ -200,6 +202,8 @@ def summarize_completed_episodes(
         tuple(linear_tracking_squared_error_sum.shape),
         tuple(yaw_tracking_squared_error_sum.shape),
         tuple(absolute_action_sum.shape),
+        tuple(torque_saturation_ratio_sum.shape),
+        tuple(mean_torque_utilization_sum.shape),
         tuple(episode_lengths.shape),
         tuple(timeouts.shape),
     }
@@ -218,6 +222,36 @@ def summarize_completed_episodes(
             yaw_tracking_squared_error_sum / lengths
         ).mean(),
         "mean_abs_action": (absolute_action_sum / lengths).mean(),
+        "torque_saturation_ratio": (
+            torque_saturation_ratio_sum / lengths
+        ).mean(),
+        "mean_torque_utilization": (
+            mean_torque_utilization_sum / lengths
+        ).mean(),
+    }
+
+
+def compute_actuator_logging_metrics(
+    commanded_torque: torch.Tensor,
+    saturated_torque: torch.Tensor,
+    *,
+    effort_limit_nm: float,
+    saturation_epsilon_nm: float,
+) -> Dict[str, torch.Tensor]:
+    """Return two aggregate actuator metrics without affecting control."""
+    if commanded_torque.shape != saturated_torque.shape or commanded_torque.ndim != 2:
+        raise ValueError("torques must have matching [env,dof] shapes")
+    if effort_limit_nm <= 0.0 or saturation_epsilon_nm < 0.0:
+        raise ValueError("effort limit must be positive and epsilon non-negative")
+    saturated = (
+        torch.abs(commanded_torque - saturated_torque)
+        > saturation_epsilon_nm
+    )
+    return {
+        "torque_saturation_ratio": saturated.to(commanded_torque.dtype).mean(dim=1),
+        "mean_torque_utilization": (
+            torch.abs(commanded_torque) / effort_limit_nm
+        ).mean(dim=1),
     }
 
 
