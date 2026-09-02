@@ -1,4 +1,4 @@
-"""Bounded task-only MDP smoke; this module cannot create a PPO checkpoint."""
+"""Bounded energy-off MDP smoke; this module cannot create a PPO checkpoint."""
 
 from __future__ import annotations
 

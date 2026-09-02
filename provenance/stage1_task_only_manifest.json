@@ -1,15 +1,20 @@
 {
-  "schema": "pace_stage1.task_only_provenance.v1",
+  "schema": "pace_stage1.pace_energy_off_ablation_provenance.v2",
   "status": {
-    "Stage_1_Task_only_MDP": "PIPELINE PASS / TRAINING USABLE",
-    "Stage_1_Task_only_policy_quality": "NOT FROZEN",
-    "PPO_started": false,
-    "formal_training_started": false,
-    "formal_checkpoint_created": false
+    "Stage_1_energy_off_MDP_semantics": "PASS",
+    "Stage_1_energy_off_objective": "VALID PROJECT-DEFINED ABLATION",
+    "Stage_1_energy_off_policy_behavior": "EXPECTED BUT TORQUE-SATURATED",
+    "official_PACE_task_only_baseline_exists": false,
+    "PPO_validation_started": true,
+    "historical_model_3000_created": true,
+    "historical_model_3000_valid_as_baseline": false,
+    "renamed_formal_ablation_started": false
   },
   "mandatory_banner": "Reproduction status:\nPublic-information independent reproduction.\n\nExact PACE legacy SysID replay:\nUNRESOLVED / Stage 0C-E FAIL.\n\nKnown residual:\noverall 0.012818 rad on released legacy replay.\n\nLegacy exact asset and paper-era simulator configuration:\nnot publicly resolved.",
   "history": {
-    "branch": "codex/stage1-task-only-mdp",
+    "legacy_branch": "codex/stage1-task-only-mdp",
+    "formal_branch": "codex/stage1-energy-off-ablation",
+    "diagnostic_branch": "codex/stage1-energy-off-diagnostic",
     "start_tag": "stage0-public-reproduction-ready",
     "start_commit": "0fe25899e63a7be0a5c73a0184f7390352d9f6be",
     "preserved_failed_node": {
@@ -39,10 +44,10 @@
       "notes": "The unresolved Stage 0C-E legacy residual remains unchanged."
     },
     "reward": {
-      "value": "task-only reward; no energy optimization objective",
-      "source": "PACE explicit task structure + LeggedGym inherited execution semantics",
-      "confidence": "high for execution order; medium for reconstructed FTD schedule use",
-      "notes": "The FTD schedule remains a task regularizer; no energy term, cost, constraint or budget exists."
+      "value": "PACE-derived energy-off task ablation; no energy optimization objective",
+      "source": "PACE v2 four-term objective with the energy term removed by project design + LeggedGym inherited execution semantics",
+      "confidence": "high for the three retained terms and execution order; medium for reconstructed FTD schedule use",
+      "notes": "This experiment does not exist in the official PACE paper or release and is not an official PACE baseline. The retained objective is velocity tracking + collision + scheduled FTD."
     },
     "termination": {
       "value": "base contact or strict >2000-step timeout; reward computed on terminal pre-reset state",
@@ -98,6 +103,12 @@
     }
   },
   "action": {
+    "policy_clip_range": {
+      "value": [-100.0, 100.0],
+      "source": "LeggedGym 8fa29acc inherited",
+      "confidence": "high",
+      "notes": "Environment-side clipping is applied before the 0.5-rad action scale; it is intentionally not changed to [-1,1]."
+    },
     "dimension_and_order": {
       "value": "12 DOF, canonical LF/RF/LH/RH with HAA/HFE/KFE within each leg",
       "source": "Stage 0 frozen",
@@ -108,13 +119,31 @@
       "value": "0.5 rad; q0=(0,0.4,-0.8) front and (0,-0.4,0.8) hind",
       "source": "LeggedGym inherited",
       "confidence": "high",
-      "notes": "The adapter also preserves the frozen 5-degree inward hard-limit band."
+      "notes": "The reconstruction clamp candidate retains the 5-degree inward band but is not enforced on the default policy target."
     },
-    "mapping": {
-      "value": "action -> LocomotionTargetAdapter -> absolute q_target -> unchanged PACEActuatorCore",
-      "source": "PACE explicit + Stage 0 frozen",
+    "target_adapter_behavior": {
+      "value": "q_before=q0+0.5*clipped_action; q_after is the reconstruction 5-degree inward URDF-limit clamp candidate",
+      "source": "LeggedGym action scaling + reconstruction safety wrapper",
       "confidence": "high",
-      "notes": "Actuator saturation and delay semantics remain Stage 0-owned."
+      "notes": "enforce_joint_limit_on_policy_target=false selects q_before for PACEActuatorCore. The candidate exists only to make the disabled wrapper explicit and testable."
+    },
+    "joint_limit_handling": {
+      "value": "clamp-off; q_before enters unchanged PACEActuatorCore",
+      "source": "LeggedGym action/PD comparison + Stage 0 interface audit",
+      "confidence": "high",
+      "notes": "PACEActuatorCore retains its PD law, torque-speed envelope, effort limit and delay."
+    },
+    "inheritance_boundary": {
+      "value": "LeggedGym PPO execution and observation/reward aggregation style; distinct Stage0 PACEActuatorCore action endpoint",
+      "source": "implementation audit",
+      "confidence": "high",
+      "notes": "Do not claim complete inheritance of the LeggedGym locomotion action pipeline."
+    },
+    "pace_eq9_boundary": {
+      "value": "not implemented",
+      "source": "PACE v2 Eq. 9 action-interface review",
+      "confidence": "high",
+      "notes": "The disabled direct URDF target clamp is not equivalent to Eq. 9. Current Stage 1 is PACE actuator-core reproduction without the Eq. 9 hard-limit-safe PD extension."
     }
   },
   "command": {
@@ -262,11 +291,11 @@
       "confidence": "high",
       "notes": "Bounded pipeline validation only; it is not a formal seed or result."
     },
-    "formal_flat_seed0": {
+    "renamed_formal_flat_seed0_ablation": {
       "value": "4096 env, 3000 iterations, seed 0, plane terrain, friction randomization and pushes enabled",
       "source": "explicit human authorization",
       "confidence": "high",
-      "notes": "Experiment name stage1_task_only_flat_seed0; policy quality remains unfrozen until training and evaluation complete."
+      "notes": "Future experiment name stage1_pace_energy_off_flat_seed0. The historical stage1_task_only_flat_seed0/model_3000 artifact is diagnostic evidence and invalid as a baseline."
     }
   },
   "training_diagnostics": {
@@ -287,6 +316,12 @@
       "source": "rsl_rl v1.0.2",
       "confidence": "high",
       "notes": "Gaussian policy distribution standard deviation, not action RMS."
+    },
+    "torque_saturation_finding": {
+      "value": "energy-off PPO attains high task return while entering a high actuator-torque-saturation regime",
+      "source": "codex/stage1-energy-off-diagnostic 1000-iteration clamp-off diagnostic",
+      "confidence": "high for the observed mechanism",
+      "notes": "This is expected optimization behavior under the energy-off objective, not evidence of a hidden reward bug. Detailed raw/per-DOF logging remains on the diagnostic branch."
     }
   },
   "unresolved_assumptions": [
@@ -303,10 +338,16 @@
       "notes": "PACE states i.i.d. noise without all public numeric details."
     },
     {
-      "value": "500-iteration FTD-only half-life in the task-only stage",
+      "value": "500-iteration FTD-only half-life in the energy-off ablation",
       "source": "PACE explicit schedule form + reconstruction assumption",
       "confidence": "medium",
-      "notes": "The public schedule jointly regularizes penalties; Stage 1 removes the prohibited term and retains FTD as a task regularizer."
+      "notes": "The public schedule jointly regularizes penalties; Stage 1 removes the energy term and retains FTD as a structural task penalty."
+    },
+    {
+      "value": "PACE Eq. 9 hard-limit-safe PD extension",
+      "source": "PACE v2 explicit; current implementation absent",
+      "confidence": "high that the boundary is unresolved",
+      "notes": "The direct q-target clamp is disabled because it is not Eq. 9. Exact limit-aware target reshaping remains a separate interface task and must not modify Stage 0 actuator dynamics."
     }
   ],
   "stage0_integrity": {
@@ -321,9 +362,9 @@
   },
   "verification": {
     "tests": {
-      "result": "98/98 PASS",
+      "result": "100/100 PASS",
       "stage0": "71/71 PASS",
-      "stage1": "27/27 PASS"
+      "stage1": "29/29 PASS"
     },
     "environment_smoke": {
       "plane_2_env_3_step": "PASS",
@@ -340,15 +381,18 @@
       "num_envs": 2,
       "rollout_steps": 2,
       "in_memory_updates": 1,
-      "value_loss": 0.11618571069454901,
-      "surrogate_loss": -0.0695416409522295,
+      "value_loss": 0.11616061694355721,
+      "surrogate_loss": -0.06933281160891056,
       "finite": true,
       "checkpoint_created": false
     },
-    "formal_PPO_started": false,
-    "formal_checkpoint_created": false
+    "renamed_formal_ablation_started": false,
+    "renamed_formal_ablation_checkpoint_created": false,
+    "historical_model_3000_classification": "DIAGNOSTIC ONLY / INVALID AS BASELINE"
   },
   "gate": {
-    "Stage_1_Task_only_MDP_gate": "PASS"
+    "Stage_1_PACE_derived_energy_off_MDP_gate": "PASS",
+    "Stage_1_policy_behavior": "EXPECTED BUT TORQUE-SATURATED",
+    "formal_baseline": "DOES NOT EXIST"
   }
 }

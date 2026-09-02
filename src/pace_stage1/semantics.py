@@ -1,4 +1,4 @@
-"""Pure execution semantics for the Stage 1 task-only locomotion MDP."""
+"""Execution semantics for the Stage 1 PACE-derived energy-off ablation."""
 
 from __future__ import annotations
 
@@ -236,6 +236,14 @@ class TaskRewardTerms:
     total: torch.Tensor
 
 
+@dataclass(frozen=True)
+class PolicyTargetPipeline:
+    before_joint_limit: torch.Tensor
+    after_joint_limit: torch.Tensor
+    selected_target: torch.Tensor
+    saturation_mask: torch.Tensor
+
+
 def compute_task_reward_terms(
     commands: torch.Tensor,
     base_linear_velocity_body: torch.Tensor,
@@ -309,6 +317,31 @@ def make_target_adapter(config: Stage1Config = STAGE1_CONFIG) -> LocomotionTarge
         action_scale=config.action.scale_rad,
         soft_band=config.action.soft_limit_band_rad,
     )
+
+
+def compute_policy_target_pipeline(
+    policy_action: torch.Tensor,
+    default_dof_pos: torch.Tensor,
+    lower_limits: torch.Tensor,
+    upper_limits: torch.Tensor,
+    config: Stage1Config = STAGE1_CONFIG,
+    adapter: Optional[LocomotionTargetAdapter] = None,
+) -> PolicyTargetPipeline:
+    """Select the policy target without changing frozen actuator dynamics."""
+    before = default_dof_pos + config.action.scale_rad * policy_action
+    target_adapter = make_target_adapter(config) if adapter is None else adapter
+    after = target_adapter(
+        policy_action, default_dof_pos, lower_limits, upper_limits
+    )
+    saturation_mask = (
+        torch.abs(before - after) > config.target_adapter.saturation_epsilon_rad
+    )
+    selected = (
+        after
+        if config.target_adapter.enforce_joint_limit_on_policy_target
+        else before
+    )
+    return PolicyTargetPipeline(before, after, selected, saturation_mask)
 
 
 def reward_manifest(config: Stage1Config = STAGE1_CONFIG) -> Tuple[Dict[str, object], ...]:

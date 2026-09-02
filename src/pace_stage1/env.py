@@ -1,4 +1,4 @@
-"""Isaac Gym Preview 4 VecEnv for the Stage 1 task-only locomotion MDP."""
+"""Isaac Gym Preview 4 VecEnv for the Stage 1 energy-off ablation MDP."""
 
 from __future__ import annotations
 
@@ -28,6 +28,7 @@ from .semantics import (
     build_critic_observation,
     command_yaw_rate,
     command_resample_mask,
+    compute_policy_target_pipeline,
     compute_task_reward_terms,
     make_target_adapter,
     quat_rotate_inverse,
@@ -599,14 +600,18 @@ class Stage1LocomotionEnv:
         self.actions = torch.clamp(
             actions.to(self.device), -self.cfg.action.clip, self.cfg.action.clip
         )
+        target_pipeline = compute_policy_target_pipeline(
+            self.actions,
+            self.default_dof_pos,
+            self.lower_limits.repeat(self.num_envs, 1),
+            self.upper_limits.repeat(self.num_envs, 1),
+            self.cfg,
+            self.target_adapter,
+        )
         for _ in range(self.cfg.action.policy_decimation):
-            target = self.target_adapter(
-                self.actions,
-                self.default_dof_pos,
-                self.lower_limits.repeat(self.num_envs, 1),
-                self.upper_limits.repeat(self.num_envs, 1),
+            actuator_step = self.actuator.step(
+                target_pipeline.selected_target, self.dof_pos, self.dof_vel
             )
-            actuator_step = self.actuator.step(target, self.dof_pos, self.dof_vel)
             self.applied_torque = actuator_step.applied_torque
             asset_torque = torch.zeros_like(self.dof_state[:, :, 0])
             gather = torch.as_tensor(self.gather_indices, dtype=torch.long, device=self.device)

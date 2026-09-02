@@ -14,6 +14,7 @@ from pace_stage1.semantics import (
     build_critic_observation,
     command_resample_mask,
     command_yaw_rate,
+    compute_policy_target_pipeline,
     compute_task_reward_terms,
     foot_touchdown_schedule,
     make_target_adapter,
@@ -99,6 +100,41 @@ class ActionAndStage0InterfaceTest(unittest.TestCase):
         self.assertEqual(STAGE1_CONFIG.action.policy_decimation, 4)
         self.assertEqual(STAGE1_CONFIG.action.policy_dt_s, 0.01)
 
+    def test_policy_target_wrapper_can_reproduce_legacy_clamp_candidate(self):
+        config = replace(
+            STAGE1_CONFIG,
+            target_adapter=replace(
+                STAGE1_CONFIG.target_adapter,
+                enforce_joint_limit_on_policy_target=True,
+            ),
+        )
+        action = torch.tensor([[0.0, 4.0]])
+        pose = torch.zeros_like(action)
+        result = compute_policy_target_pipeline(
+            action,
+            pose,
+            torch.full_like(action, -1.0),
+            torch.full_like(action, 1.0),
+            config,
+        )
+        self.assertEqual(result.saturation_mask.tolist(), [[False, True]])
+        torch.testing.assert_close(result.selected_target, result.after_joint_limit)
+
+    def test_default_policy_target_bypasses_reconstruction_clamp(self):
+        self.assertFalse(
+            STAGE1_CONFIG.target_adapter.enforce_joint_limit_on_policy_target
+        )
+        action = torch.tensor([[0.0, 4.0]])
+        pose = torch.zeros_like(action)
+        result = compute_policy_target_pipeline(
+            action,
+            pose,
+            torch.full_like(action, -1.0),
+            torch.full_like(action, 1.0),
+        )
+        torch.testing.assert_close(result.selected_target, result.before_joint_limit)
+        self.assertTrue(result.saturation_mask[0, 1])
+
     def test_batched_actuator_changes_only_fifo_reset(self):
         actuator = BatchedPACEActuator(torch.zeros(12), 3)
         q = torch.zeros(2, 12)
@@ -154,7 +190,7 @@ class TaskRewardExecutionTest(unittest.TestCase):
             config=config,
         )
 
-    def test_task_only_reward_manifest(self):
+    def test_energy_off_reward_manifest(self):
         names = [term["name"] for term in reward_manifest()]
         self.assertEqual(names, ["velocity_tracking", "collision", "foot_touchdown", "termination"])
         self.assertFalse(any("energy" in name for name in names))
@@ -262,14 +298,14 @@ class TerminationTerrainPPOProvenanceTest(unittest.TestCase):
         self.assertFalse(smoke.formal_seed)
         self.assertFalse(smoke.checkpoint_created)
 
-    def test_formal_flat_seed0_baseline_is_exact(self):
-        baseline = STAGE1_CONFIG.formal_baseline
-        self.assertEqual(baseline.experiment_name, "stage1_task_only_flat_seed0")
-        self.assertEqual((baseline.num_envs, baseline.max_iterations), (4096, 3000))
-        self.assertEqual(baseline.seed, 0)
-        self.assertEqual(baseline.terrain_mode, "plane")
-        self.assertTrue(baseline.friction_randomization)
-        self.assertTrue(baseline.pushes)
+    def test_formal_flat_seed0_energy_off_ablation_is_exact(self):
+        ablation = STAGE1_CONFIG.formal_ablation
+        self.assertEqual(ablation.experiment_name, "stage1_pace_energy_off_flat_seed0")
+        self.assertEqual((ablation.num_envs, ablation.max_iterations), (4096, 3000))
+        self.assertEqual(ablation.seed, 0)
+        self.assertEqual(ablation.terrain_mode, "plane")
+        self.assertTrue(ablation.friction_randomization)
+        self.assertTrue(ablation.pushes)
 
     def test_runner_bridge_changes_only_task_iteration(self):
         class Environment:
@@ -285,7 +321,8 @@ class TerminationTerrainPPOProvenanceTest(unittest.TestCase):
 
     def test_manifest_has_required_provenance_fields(self):
         self.assertEqual(MANIFEST["history"]["start_commit"], "0fe25899e63a7be0a5c73a0184f7390352d9f6be")
-        self.assertFalse(MANIFEST["status"]["PPO_started"])
+        self.assertTrue(MANIFEST["status"]["PPO_validation_started"])
+        self.assertFalse(MANIFEST["status"]["official_PACE_task_only_baseline_exists"])
         self.assertIn("energy reward", MANIFEST["reward"]["forbidden"])
         for item in MANIFEST["unresolved_assumptions"]:
             self.assertTrue({"value", "source", "confidence", "notes"} <= item.keys())
@@ -295,7 +332,7 @@ class TerminationTerrainPPOProvenanceTest(unittest.TestCase):
             actual = hashlib.sha256((ROOT / relative).read_bytes()).hexdigest()
             self.assertEqual(actual, expected, relative)
 
-    def test_task_only_source_has_no_prohibited_implementation(self):
+    def test_energy_off_source_has_no_prohibited_implementation(self):
         config_source = (ROOT / "src" / "pace_stage1" / "config.py").read_text(encoding="utf-8")
         semantics_source = (ROOT / "src" / "pace_stage1" / "semantics.py").read_text(encoding="utf-8")
         for prohibited in ("energy_scale", "electrical_loss", "lagrangian", "cost_critic"):

@@ -1,4 +1,4 @@
-"""Single source of executable values for the Stage 1 task-only MDP."""
+"""Executable values for the Stage 1 PACE-derived energy-off ablation."""
 
 from __future__ import annotations
 
@@ -77,7 +77,7 @@ class ActionConfig:
         0.0, -0.4, 0.8,
         0.0, -0.4, 0.8,
     )
-    target_mapping: str = "q_target=frozen LocomotionTargetAdapter(action,q0,URDF limits)"
+    target_mapping: str = "q_target=q0+0.5*clip(policy_action,-100,100)"
     target_semantics: str = "absolute joint-position target into frozen PACEActuatorCore"
     physics_dt_s: float = 0.0025
     policy_decimation: int = 4
@@ -86,6 +86,14 @@ class ActionConfig:
     @property
     def policy_dt_s(self) -> float:
         return self.physics_dt_s * self.policy_decimation
+
+
+@dataclass(frozen=True)
+class TargetAdapterConfig:
+    """Stage 1 wrapper selection; not part of PACEActuatorCore dynamics."""
+
+    enforce_joint_limit_on_policy_target: bool = False
+    saturation_epsilon_rad: float = 1.0e-6
 
 
 @dataclass(frozen=True)
@@ -108,7 +116,7 @@ class CommandConfig:
 
 @dataclass(frozen=True)
 class RewardConfig:
-    """Task-only terms and inherited LeggedGym aggregation semantics."""
+    """PACE task terms with energy removed; aggregation follows LeggedGym."""
 
     tracking_sigma: float = 0.25
     velocity_tracking_scale: float = 0.2
@@ -225,8 +233,8 @@ class PPOSmokeConfig:
 
 
 @dataclass(frozen=True)
-class FormalTaskOnlyBaselineConfig:
-    experiment_name: str = "stage1_task_only_flat_seed0"
+class FormalEnergyOffAblationConfig:
+    experiment_name: str = "stage1_pace_energy_off_flat_seed0"
     num_envs: int = 4096
     max_iterations: int = 3000
     seed: int = 0
@@ -239,9 +247,10 @@ class FormalTaskOnlyBaselineConfig:
 
 @dataclass(frozen=True)
 class Stage1Config:
-    schema: str = "pace_stage1.task_only_mdp.v1"
+    schema: str = "pace_stage1.pace_energy_off_ablation.v1"
     observation: ObservationConfig = field(default_factory=ObservationConfig)
     action: ActionConfig = field(default_factory=ActionConfig)
+    target_adapter: TargetAdapterConfig = field(default_factory=TargetAdapterConfig)
     commands: CommandConfig = field(default_factory=CommandConfig)
     rewards: RewardConfig = field(default_factory=RewardConfig)
     reset: ResetConfig = field(default_factory=ResetConfig)
@@ -249,8 +258,8 @@ class Stage1Config:
     randomization: RandomizationConfig = field(default_factory=RandomizationConfig)
     ppo: PPOConfig = field(default_factory=PPOConfig)
     ppo_smoke: PPOSmokeConfig = field(default_factory=PPOSmokeConfig)
-    formal_baseline: FormalTaskOnlyBaselineConfig = field(
-        default_factory=FormalTaskOnlyBaselineConfig
+    formal_ablation: FormalEnergyOffAblationConfig = field(
+        default_factory=FormalEnergyOffAblationConfig
     )
 
     def to_dict(self) -> Dict[str, object]:
@@ -292,7 +301,7 @@ def ppo_train_cfg(config: Stage1Config = STAGE1_CONFIG) -> Dict[str, object]:
             "num_steps_per_env": p.num_steps_per_env,
             "max_iterations": p.max_iterations,
             "save_interval": p.checkpoint_interval,
-            "experiment_name": "pace_stage1_task_only_validation",
+            "experiment_name": "pace_stage1_energy_off_validation",
             "run_name": "",
             "resume": False,
             "load_run": -1,

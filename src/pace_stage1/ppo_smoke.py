@@ -69,7 +69,7 @@ def run() -> dict:
         "optimizer_updates": smoke.optimizer_updates,
         "formal_seed": smoke.formal_seed,
         "checkpoint_created": smoke.checkpoint_created,
-        "formal_PPO_started": False,
+        "formal_ablation_PPO_started": False,
         "in_memory_PPO_update_completed": True,
         "value_loss": float(value_loss),
         "surrogate_loss": float(surrogate_loss),

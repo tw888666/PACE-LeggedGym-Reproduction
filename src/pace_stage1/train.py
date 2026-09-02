@@ -1,4 +1,4 @@
-"""Exact Stage 1 Task-only flat seed0 baseline launcher."""
+"""Exact Stage 1 PACE-derived energy-off flat seed0 ablation launcher."""
 
 from __future__ import annotations
 
@@ -29,36 +29,39 @@ def _write_manifest(path: Path, payload: dict) -> None:
 
 
 def run_flat_seed0() -> Path:
-    baseline = STAGE1_CONFIG.formal_baseline
+    ablation = STAGE1_CONFIG.formal_ablation
     if importlib.metadata.version("rsl-rl") != "1.0.2":
-        raise RuntimeError("formal baseline requires rsl_rl 1.0.2")
+        raise RuntimeError("formal energy-off ablation requires rsl_rl 1.0.2")
     if subprocess.call(["git", "diff", "--quiet"], cwd=str(PROJECT_ROOT)) != 0:
-        raise RuntimeError("tracked worktree must match the committed baseline implementation")
+        raise RuntimeError("tracked worktree must match the committed ablation implementation")
     commit = subprocess.check_output(
         ["git", "rev-parse", "HEAD"], cwd=str(PROJECT_ROOT), text=True
     ).strip()
     stamp = datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%SZ")
     run_dir = (
-        PROJECT_ROOT / "artifacts" / "ppo" / baseline.experiment_name / stamp
+        PROJECT_ROOT / "artifacts" / "ppo" / ablation.experiment_name / stamp
     )
     run_dir.mkdir(parents=True, exist_ok=False)
     manifest_path = run_dir / "run_manifest.json"
     manifest = {
-        "schema": "pace_stage1.task_only_flat_baseline.v1",
-        "classification": "FORMAL TASK-ONLY REFERENCE POLICY / POLICY QUALITY NOT FROZEN",
+        "schema": "pace_stage1.pace_energy_off_flat_ablation.v1",
+        "classification": "PACE-DERIVED ENERGY-OFF ABLATION / NOT AN OFFICIAL PACE BASELINE",
         "commit": commit,
-        "experiment_name": baseline.experiment_name,
-        "num_envs": baseline.num_envs,
-        "max_iterations": baseline.max_iterations,
-        "seed": baseline.seed,
-        "terrain_mode": baseline.terrain_mode,
-        "friction_randomization": baseline.friction_randomization,
-        "pushes": baseline.pushes,
-        "sim_device": baseline.sim_device,
-        "rl_device": baseline.rl_device,
+        "experiment_name": ablation.experiment_name,
+        "num_envs": ablation.num_envs,
+        "max_iterations": ablation.max_iterations,
+        "seed": ablation.seed,
+        "terrain_mode": ablation.terrain_mode,
+        "friction_randomization": ablation.friction_randomization,
+        "pushes": ablation.pushes,
+        "enforce_joint_limit_on_policy_target": (
+            STAGE1_CONFIG.target_adapter.enforce_joint_limit_on_policy_target
+        ),
+        "sim_device": ablation.sim_device,
+        "rl_device": ablation.rl_device,
         "cuda_visible_devices": os.environ.get("CUDA_VISIBLE_DEVICES"),
         "physical_device_name": torch.cuda.get_device_name(0),
-        "formal_PPO_started": False,
+        "formal_ablation_PPO_started": False,
         "state": "constructing_environment",
         "created_at_unix_s": time.time(),
     }
@@ -66,31 +69,31 @@ def run_flat_seed0() -> Path:
     environment = None
     try:
         environment = Stage1LocomotionEnv(
-            num_envs=baseline.num_envs,
-            sim_device=baseline.sim_device,
+            num_envs=ablation.num_envs,
+            sim_device=ablation.sim_device,
             headless=True,
-            terrain_mode=baseline.terrain_mode,
-            seed=baseline.seed,
-            enable_pushes=baseline.pushes,
+            terrain_mode=ablation.terrain_mode,
+            seed=ablation.seed,
+            enable_pushes=ablation.pushes,
         )
         train_cfg = ppo_train_cfg()
-        train_cfg["seed"] = baseline.seed
-        train_cfg["runner"]["max_iterations"] = baseline.max_iterations
-        train_cfg["runner"]["experiment_name"] = baseline.experiment_name
+        train_cfg["seed"] = ablation.seed
+        train_cfg["runner"]["max_iterations"] = ablation.max_iterations
+        train_cfg["runner"]["experiment_name"] = ablation.experiment_name
         runner = OnPolicyRunner(
             environment,
             train_cfg,
             log_dir=str(run_dir),
-            device=baseline.rl_device,
+            device=ablation.rl_device,
         )
-        manifest["formal_PPO_started"] = True
+        manifest["formal_ablation_PPO_started"] = True
         manifest["state"] = "training"
         manifest["runner_created_at_unix_s"] = time.time()
         _write_manifest(manifest_path, manifest)
         print(f"RUN_DIR={run_dir}", flush=True)
-        runner.learn(baseline.max_iterations, init_at_random_ep_len=True)
+        runner.learn(ablation.max_iterations, init_at_random_ep_len=True)
         manifest["state"] = "completed"
-        manifest["completed_iterations"] = baseline.max_iterations
+        manifest["completed_iterations"] = ablation.max_iterations
         manifest["completed_at_unix_s"] = time.time()
         _write_manifest(manifest_path, manifest)
     except Exception as error:
@@ -110,7 +113,7 @@ def main() -> None:
     parser.add_argument("--flat-seed0", action="store_true")
     args = parser.parse_args()
     if not args.flat_seed0:
-        parser.error("only the exact --flat-seed0 baseline is available")
+        parser.error("only the exact --flat-seed0 energy-off ablation is available")
     run_flat_seed0()
 
 

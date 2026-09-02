@@ -1,4 +1,4 @@
-"""Minimal bridge from PPO iteration count to the task-only FTD schedule."""
+"""Minimal bridge from PPO iteration count to the energy-off FTD schedule."""
 
 from __future__ import annotations
 

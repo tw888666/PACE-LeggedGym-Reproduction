@@ -47,17 +47,27 @@ report must retain that banner. Stage 1 locomotion implementation is authorized,
 has not been started in this freeze commit. PPO implementation, GPU jobs, and PPO training
 have not started.
 
-## Stage 1 Task-only MDP（仅任务奖励马尔可夫决策过程）
+## Stage 1 PACE-derived energy-off task ablation（PACE 派生关闭能耗项任务消融）
 
-新的 Stage 1 位于 `codex/stage1-task-only-mdp` branch（分支），并从
+新的 Stage 1 正式分支为 `codex/stage1-energy-off-ablation`，诊断分支为
+`codex/stage1-energy-off-diagnostic`；二者均从
 `stage0-public-reproduction-ready` 直接创建。历史节点 `stage1-ppo-ready` / `c8454db`
 保持不变，标记为 `PACE energy MDP v1 Phase A failure`，不作为本分支的代码起点。
 
+该实验是从 PACE v2 四项 locomotion objective（运动目标）中删除 energy term（能耗项）
+后得到的项目内消融，不存在于 PACE 论文或官方 release（发布版本）中。因此不得称为
+“PACE Task-only baseline（PACE 仅任务基线）”，也不得作为官方论文基线引用。
+
 本阶段仅验证“冻结 Stage 0 physics reconstruction（物理重建）后，ANYmal locomotion
 task MDP（运动任务马尔可夫决策过程）是否闭合”。Actor observation（策略观测）为
-48 维，critic observation（价值网络观测）为 353 维；12 维 action（动作）经
-`LocomotionTargetAdapter` 转为绝对关节目标，再进入未修改的 Stage 0
-`PACEActuatorCore`。
+48 维，critic observation（价值网络观测）为 353 维；12 维 action（动作）先按
+LeggedGym 语义裁剪到 `[-100,100]`，再通过 `q_target=q0+0.5*action` 形成绝对关节目标，
+并进入未修改的 Stage 0 `PACEActuatorCore`。Stage 1 仍计算带 5-degree（5 度）内缩带的
+URDF joint-limit clamp（关节限位裁剪）候选，但默认
+`enforce_joint_limit_on_policy_target=false`，该 reconstruction safety wrapper
+（重建安全包装层）不参与实际 actuator 输入。这个直接 target clamp 不等价于 PACE v2
+Eq. 9；当前边界是“PACE actuator core reproduction without Eq. 9 hard-limit-safe PD
+extension（PACE 执行器核心复现，不含 Eq. 9 硬限位安全 PD 扩展）”。
 
 Reward（奖励）只有以下执行项：
 
@@ -86,24 +96,25 @@ conda run --no-capture-output -n bruce_gym env PYTHONPATH=src python -m pace_sta
 conda run --no-capture-output -n bruce_gym env PYTHONPATH=src python -m pace_stage1.ppo_smoke
 ```
 
-测试结果为 `98/98 PASS`：Stage 0 保留 `71/71`，Stage 1 新增 `27/27`。Plane
+测试结果为 `100/100 PASS`：Stage 0 保留 `71/71`，Stage 1 为 `29/29`。Plane
 （平面）和 production trimesh（生产三角网格）环境 smoke（冒烟验证）通过；一次
 2-env、2-step 的内存内 PPO 更新也通过，loss（损失）有限，且未创建 checkpoint。
-正式 PPO、正式 seed、baseline evaluation（基线评估）均未启动。
+这些 bounded validation（有界验证）不生成正式结果。历史 3000-iteration 运行已经完成，
+但仅归档为 diagnostic evidence（诊断证据），其 checkpoint 不具备 baseline 身份。
 
 训练日志在不改变 MDP 的前提下额外记录 completed episode（已完成回合）的
 `base_contact_rate`、`timeout_rate`、`velocity_tracking_rmse`、`yaw_tracking_rmse` 和
 `mean_abs_action`；policy distribution std（策略分布标准差）继续使用 rsl_rl 原生
-`Policy/mean_noise_std`。正式 Task-only reference policy（仅任务参考策略）的固定入口为：
+`Policy/mean_noise_std`。新的 energy-off ablation 固定入口为：
 
 ```bash
 CUDA_VISIBLE_DEVICES=0 conda run --no-capture-output -n bruce_gym env PYTHONPATH=src python -m pace_stage1.train --flat-seed0
 ```
 
 该入口固定为 `4096 env × 3000 iterations × seed 0`，使用 plane terrain（平面地形），
-保留 friction randomization（摩擦随机化）和 pushes（推扰），实验名为
-`stage1_task_only_flat_seed0`。这会生成正式 Task-only 权重，但在完成训练与评估前，
-policy quality（策略质量）仍为 `NOT FROZEN`。
+保留 friction randomization（摩擦随机化）和 pushes（推扰），新实验名为
+`stage1_pace_energy_off_flat_seed0`。历史 `stage1_task_only_flat_seed0/model_3000` 只作为
+torque-saturation diagnosis（力矩饱和诊断）保留，不得解释为 baseline。本轮不会启动该入口。
 
 ## Frozen Stage 0 scope
 
