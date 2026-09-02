@@ -8,7 +8,8 @@
     "PPO_validation_started": true,
     "historical_model_3000_created": true,
     "historical_model_3000_valid_as_baseline": false,
-    "renamed_formal_ablation_started": false
+    "renamed_formal_ablation_started": true,
+    "renamed_formal_ablation_state": "RUNNING FROM SEMANTICS-FROZEN TAG"
   },
   "mandatory_banner": "Reproduction status:\nPublic-information independent reproduction.\n\nExact PACE legacy SysID replay:\nUNRESOLVED / Stage 0C-E FAIL.\n\nKnown residual:\noverall 0.012818 rad on released legacy replay.\n\nLegacy exact asset and paper-era simulator configuration:\nnot publicly resolved.",
   "history": {
@@ -400,8 +401,10 @@
       "finite": true,
       "checkpoint_created": false
     },
-    "renamed_formal_ablation_started": false,
-    "renamed_formal_ablation_checkpoint_created": false,
+    "renamed_formal_ablation_started": true,
+    "renamed_formal_ablation_checkpoint_created": true,
+    "renamed_formal_ablation_run_directory": "artifacts/ppo/stage1_pace_energy_off_flat_seed0/20260902T073411Z",
+    "renamed_formal_ablation_commit": "1566aa0eb9856668a410c957897964664cb667c7",
     "historical_model_3000_classification": "DIAGNOSTIC ONLY / INVALID AS BASELINE"
   },
   "gate": {

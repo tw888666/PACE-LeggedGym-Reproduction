@@ -120,7 +120,9 @@ CUDA_VISIBLE_DEVICES=0 conda run --no-capture-output -n bruce_gym env PYTHONPATH
 该入口固定为 `4096 env × 3000 iterations × seed 0`，使用 plane terrain（平面地形），
 保留 friction randomization（摩擦随机化）和 pushes（推扰），新实验名为
 `stage1_pace_energy_off_flat_seed0`。历史 `stage1_task_only_flat_seed0/model_3000` 只作为
-torque-saturation diagnosis（力矩饱和诊断）保留，不得解释为 baseline。本轮不会启动该入口。
+torque-saturation diagnosis（力矩饱和诊断）保留，不得解释为 baseline。正式 seed0 已从
+`stage1-energy-off-semantics-frozen` tag 对应 commit 启动；运行状态以 timestamped
+`run_manifest.json` 为准。
 
 ## Frozen Stage 0 scope
 
