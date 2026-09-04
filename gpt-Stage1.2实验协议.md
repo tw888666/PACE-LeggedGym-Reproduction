@@ -10,7 +10,7 @@ torque L2（力矩二范数）均关闭。
 训练惩罚定义为：
 
 $$
-r_{\mathrm{act}}=-\lambda_a\,\Delta t\,
+r_{\mathrm{act}}=-\lambda_a
 \frac{1}{12}\sum_{j=1}^{12}a_{\mathrm{raw},j}^2.
 $$
 

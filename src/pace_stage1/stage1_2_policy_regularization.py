@@ -140,7 +140,7 @@ class Stage12PolicyEnv(Stage1LocomotionEnv):
         policy_mean, policy_std = self._policy_snapshot(raw_actions)
         executed_actions = torch.clamp(raw_actions, -ACTION_BOUND, ACTION_BOUND)
         penalty = raw_action_l2_penalty(
-            raw_actions, self.raw_action_l2_coefficient, self.cfg.action.policy_dt_s
+            raw_actions, self.raw_action_l2_coefficient
         )
         targets = self.default_dof_pos + self.cfg.action.scale_rad * executed_actions
 
@@ -326,7 +326,7 @@ def train(
         "classification": "STAGE1.2 PHYSICAL-POLICY CANDIDATE / NOT STAGE2 / NOT ECO",
         "phase": phase,
         "coefficient": coefficient,
-        "penalty": "coefficient * policy_dt * mean_j(raw_sample_action_j^2)",
+        "penalty": "coefficient * mean_j(raw_sample_action_j^2)",
         "action_bound": [-ACTION_BOUND, ACTION_BOUND],
         "energy_reward": "OFF",
         "torque_l2": "OFF",

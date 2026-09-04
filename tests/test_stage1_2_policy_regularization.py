@@ -17,10 +17,10 @@ class Stage12PolicyRegularizationTest(unittest.TestCase):
         )
         self.assertEqual(coefficient_label(3.0e-5), "A2_lambda_3e-5")
 
-    def test_raw_action_penalty_uses_pre_clip_per_joint_mean_and_dt(self):
+    def test_raw_action_penalty_uses_pre_clip_per_joint_mean(self):
         raw = torch.tensor([[1.0, 3.0], [2.0, 4.0]])
-        actual = raw_action_l2_penalty(raw, coefficient=1.0e-4, policy_dt_s=0.01)
-        expected = torch.tensor([5.0e-6, 10.0e-6])
+        actual = raw_action_l2_penalty(raw, coefficient=1.0e-4)
+        expected = torch.tensor([5.0e-4, 10.0e-4])
         torch.testing.assert_close(actual, expected)
 
     def test_task_success_requires_timeout_and_tracking(self):

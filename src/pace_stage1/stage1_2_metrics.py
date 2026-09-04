@@ -29,14 +29,13 @@ def coefficient_label(coefficient: float) -> str:
 def raw_action_l2_penalty(
     raw_actions: torch.Tensor,
     coefficient: float,
-    policy_dt_s: float,
 ) -> torch.Tensor:
     """Per-step penalty using the per-joint mean before action clipping."""
     if raw_actions.ndim != 2:
         raise ValueError("raw_actions must have shape [num_envs, num_actions]")
     if coefficient < 0.0:
         raise ValueError("coefficient must be non-negative")
-    return coefficient * policy_dt_s * raw_actions.square().mean(dim=1)
+    return coefficient * raw_actions.square().mean(dim=1)
 
 
 def task_success_mask(
