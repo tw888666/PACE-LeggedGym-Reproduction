@@ -169,7 +169,7 @@ class Stage1LocomotionEnv:
         options.disable_gravity = False
         options.collapse_fixed_joints = True
         options.replace_cylinder_with_capsule = True
-        options.flip_visual_attachments = False
+        options.flip_visual_attachments = True
         options.default_dof_drive_mode = gymapi.DOF_MODE_EFFORT
         options.use_physx_armature = True
         options.linear_damping = 0.0
