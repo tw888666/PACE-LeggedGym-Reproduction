@@ -33,7 +33,7 @@ class PaceV2ProtocolMatrixTest(unittest.TestCase):
         entry_ids = {entry["id"] for entry in self.matrix["matrix"]}
         blockers = set(self.matrix["formal_freeze_blockers"])
         immediate_scope = set(
-            self.matrix["immediate_paper_exact_implementation_scope"]
+            self.matrix["paper_exact_infrastructure_ready"]
         )
         self.assertTrue(blockers)
         self.assertLessEqual(blockers, entry_ids)

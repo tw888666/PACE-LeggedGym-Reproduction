@@ -47,6 +47,27 @@ report must retain that banner. Stage 1 locomotion implementation is authorized,
 has not been started in this freeze commit. PPO implementation, GPU jobs, and PPO training
 have not started.
 
+## Stage 1 PACE-v2 protocol infrastructure（PACE v2 协议基础设施）
+
+`codex/stage1-pace-v2-spec` 从 `80d637d` 建立；`17c4683` 是已推送并核验的
+protocol provenance matrix（协议来源矩阵）冻结点。机器可读规范见
+[`provenance/gpt-pace-v2-protocol-matrix.json`](provenance/gpt-pace-v2-protocol-matrix.json)。
+
+新增代码只提供默认禁用的能力，不修改下面历史 Stage1-LG 的执行路径：
+
+- PACE v2 Eq. (9) hard-limit-safe target reshape（硬限位安全目标重塑）纯函数；
+- 独立的 `LEG_GYM_REFERENCE`、`PACE_V2_VALIDATION` 和 `PACE_V2_FORMAL` 配置身份；
+- Table 8 PPO profile（近端策略优化配置档），30,000 iterations 只属于 formal profile；
+- `eta=None` 时拒绝求值的 entropy scheduler（熵调度器）；
+- actor/critic 分离、running statistics（运行统计量）可随 checkpoint 保存恢复的
+  empirical normalizer（经验归一化器）；
+- 由 provenance matrix 条目自动推导 blockers 的 fail-closed formal gate
+  （故障关闭正式训练门禁）。
+
+当前 `formal_training_allowed=false`。Eq. (9) 和 normalizer 虽已具备独立实现，仍未接入
+历史默认 pipeline；soft band、entropy `eta`、action representation、normalization
+composition 等未决项继续阻塞 `PACE_V2_FORMAL`。本分支不得启动正式 PPO 训练。
+
 ## Stage 1 PACE-derived energy-off task ablation（PACE 派生关闭能耗项任务消融）
 
 新的 Stage 1 正式分支为 `codex/stage1-energy-off-ablation`，诊断分支为

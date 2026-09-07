@@ -39,6 +39,7 @@
     "PARTIAL": "一部分语义一致，但仍混有未决转换或参数。",
     "MISSING": "论文明确要求但当前未实现。",
     "DIFFERENT": "当前值与论文明确值不同。",
+    "READY_DISABLED": "支持能力已经实现并测试，但历史默认路径未启用。",
     "ASSUMED": "当前存在可执行值，但来源只能作为复现假设。",
     "ABLATED": "当前差异是项目主动消融。",
     "NOT_APPLICABLE": "该项不进入当前阶段的可执行协议。"
@@ -59,8 +60,8 @@
       "group": "control",
       "provenance": "PAPER_EXACT",
       "paper_value": "在真实关节位于 soft-limit 区且 target 指向 feasible set 外时，按 Eq. (9) 重塑 target；不约束 policy action space",
-      "current_value": "未实现；enforce_joint_limit_on_policy_target=false",
-      "implementation_state": "MISSING",
+      "current_value": "独立纯函数已实现并测试；历史 target pipeline 未启用",
+      "implementation_state": "READY_DISABLED",
       "source": "PACE v2 Sec. 2.3.2, Eq. (9)",
       "blocks_formal_training": true
     },
@@ -172,8 +173,8 @@
       "group": "observation",
       "provenance": "PAPER_EXACT",
       "paper_value": true,
-      "current_value": false,
-      "implementation_state": "MISSING",
+      "current_value": "actor/critic 独立 running moments 与 checkpoint 元数据校验已实现；历史 observation pipeline 未启用",
+      "implementation_state": "READY_DISABLED",
       "source": "PACE v2 Appendix Table 8",
       "blocks_formal_training": true
     },
@@ -291,20 +292,18 @@
       "group": "ppo",
       "provenance": "PAPER_EXACT",
       "paper_value": 30000,
-      "current_value": 3000,
-      "implementation_state": "DIFFERENT",
-      "source": "PACE v2 Appendix Table 8",
-      "blocks_formal_training": true
+      "current_value": {"LEG_GYM_REFERENCE": 3000, "PACE_V2_FORMAL_PROFILE": 30000},
+      "implementation_state": "READY_DISABLED",
+      "source": "PACE v2 Appendix Table 8"
     },
     {
       "id": "ppo.entropy_endpoints_and_turnover",
       "group": "ppo",
       "provenance": "PAPER_EXACT",
       "paper_value": {"initial": 0.002, "final": 0.0005, "turnover_iteration": 20000, "schedule": "tanh"},
-      "current_value": {"fixed": 0.01},
-      "implementation_state": "DIFFERENT",
-      "source": "PACE v2 Eq. (21)-(22), Appendix Table 8",
-      "blocks_formal_training": true
+      "current_value": {"LEG_GYM_REFERENCE": {"fixed": 0.01}, "PACE_V2_PROFILE": {"initial": 0.002, "final": 0.0005, "turnover_iteration": 20000, "schedule": "tanh", "slope_eta": null}},
+      "implementation_state": "READY_DISABLED",
+      "source": "PACE v2 Eq. (21)-(22), Appendix Table 8"
     },
     {
       "id": "ppo.entropy_slope_eta",
@@ -323,30 +322,27 @@
       "group": "ppo",
       "provenance": "PAPER_EXACT",
       "paper_value": [256, 256, 256, 128],
-      "current_value": [512, 256, 128],
-      "implementation_state": "DIFFERENT",
-      "source": "PACE v2 Appendix Table 8",
-      "blocks_formal_training": true
+      "current_value": {"LEG_GYM_REFERENCE": [512, 256, 128], "PACE_V2_PROFILE": [256, 256, 256, 128]},
+      "implementation_state": "READY_DISABLED",
+      "source": "PACE v2 Appendix Table 8"
     },
     {
       "id": "ppo.initial_policy_std",
       "group": "ppo",
       "provenance": "PAPER_EXACT",
       "paper_value": 1.5,
-      "current_value": 1.0,
-      "implementation_state": "DIFFERENT",
-      "source": "PACE v2 Appendix Table 8",
-      "blocks_formal_training": true
+      "current_value": {"LEG_GYM_REFERENCE": 1.0, "PACE_V2_PROFILE": 1.5},
+      "implementation_state": "READY_DISABLED",
+      "source": "PACE v2 Appendix Table 8"
     },
     {
       "id": "ppo.number_of_mini_batches",
       "group": "ppo",
       "provenance": "PAPER_EXACT",
       "paper_value": 10,
-      "current_value": 4,
-      "implementation_state": "DIFFERENT",
-      "source": "PACE v2 Appendix Table 8",
-      "blocks_formal_training": true
+      "current_value": {"LEG_GYM_REFERENCE": 4, "PACE_V2_PROFILE": 10},
+      "implementation_state": "READY_DISABLED",
+      "source": "PACE v2 Appendix Table 8"
     },
     {
       "id": "ppo.shared_exact_parameters",
@@ -440,14 +436,9 @@
     "reward.velocity_tracking_sigma",
     "reward.only_positive_aggregation",
     "reward.scale_by_policy_dt",
-    "ppo.number_of_iterations",
-    "ppo.entropy_endpoints_and_turnover",
-    "ppo.entropy_slope_eta",
-    "ppo.actor_critic_hidden_dims",
-    "ppo.initial_policy_std",
-    "ppo.number_of_mini_batches"
+    "ppo.entropy_slope_eta"
   ],
-  "immediate_paper_exact_implementation_scope": [
+  "paper_exact_infrastructure_ready": [
     "control.eq9_joint_limit_saturation",
     "observation.empirical_normalization",
     "ppo.actor_critic_hidden_dims",
