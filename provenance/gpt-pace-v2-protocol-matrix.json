@@ -1,0 +1,474 @@
+{
+  "schema": "pace_v2_protocol_provenance_matrix.v1",
+  "audit_date": "2026-09-07",
+  "language": "zh-CN",
+  "purpose": "在修改 Stage1 正式协议前，逐项区分 PACE v2 论文规范、LeggedGym 默认假设、未决来源和项目主动消融。",
+  "baseline": {
+    "branch": "codex/stage1-pace-v2-spec",
+    "parent_commit": "80d637dbd7f1729dca6e6b16b59483cb8f4d478d",
+    "parent_classification": "LeggedGym-derived PACE energy-off reconstruction with diagnostics",
+    "formal_training_allowed": false,
+    "reason": "协议仍包含阻塞正式训练的未决项；本文件只冻结来源审计，不冻结最终训练配置。"
+  },
+  "authoritative_sources": {
+    "pace_v2": {
+      "title": "Towards bridging the gap: Systematic sim-to-real transfer for diverse legged robots",
+      "url": "https://arxiv.org/html/2509.06342v2",
+      "sections": {
+        "observations": "2.3.1",
+        "actions_and_joint_limit_saturation": "2.3.2, Eq. (8)-(9)",
+        "rewards": "2.3.3, Eq. (10)-(20), Table 3",
+        "entropy_schedule": "2.3.4, Eq. (21)-(22)",
+        "ppo_hyperparameters": "Appendix Table 8"
+      }
+    },
+    "legged_gym": {
+      "commit": "8fa29acc6fd1910c3d9659eef6310bdd301cde0a",
+      "url": "https://github.com/leggedrobotics/legged_gym/tree/8fa29acc6fd1910c3d9659eef6310bdd301cde0a"
+    }
+  },
+  "provenance_classes": {
+    "PAPER_EXACT": "PACE v2 明确给出离散值、公式或布尔语义。",
+    "PAPER_RANGE": "PACE v2 只给范围、典型值或任务相关建议，不能声称为 ANYmal 精确值。",
+    "LEGGEDGYM_ASSUMPTION": "当前值继承自指定 LeggedGym，但 PACE v2 未确认。",
+    "UNRESOLVED": "PACE v2 和当前可用上游实现均不足以确定该值或组合语义。",
+    "PROJECT_ABLATION": "由本项目为隔离实验变量主动定义，不属于 PACE 原论文设置。"
+  },
+  "implementation_states": {
+    "MATCH": "当前实现与论文明确规范一致。",
+    "PARTIAL": "一部分语义一致，但仍混有未决转换或参数。",
+    "MISSING": "论文明确要求但当前未实现。",
+    "DIFFERENT": "当前值与论文明确值不同。",
+    "ASSUMED": "当前存在可执行值，但来源只能作为复现假设。",
+    "ABLATED": "当前差异是项目主动消融。",
+    "NOT_APPLICABLE": "该项不进入当前阶段的可执行协议。"
+  },
+  "matrix": [
+    {
+      "id": "control.action_offset_semantics",
+      "group": "control",
+      "provenance": "PAPER_EXACT",
+      "paper_value": "policy 输出相对于默认姿态 q0 的 joint-position offset；q_target=q0+a_t",
+      "current_value": "q_target=q0+0.5*clip(policy_action,-100,100)",
+      "implementation_state": "PARTIAL",
+      "source": "PACE v2 Sec. 2.3.2, Eq. (8)",
+      "notes": "相对默认姿态的语义一致；raw policy output 到论文 a_t 的缩放和裁剪定义未决。"
+    },
+    {
+      "id": "control.eq9_joint_limit_saturation",
+      "group": "control",
+      "provenance": "PAPER_EXACT",
+      "paper_value": "在真实关节位于 soft-limit 区且 target 指向 feasible set 外时，按 Eq. (9) 重塑 target；不约束 policy action space",
+      "current_value": "未实现；enforce_joint_limit_on_policy_target=false",
+      "implementation_state": "MISSING",
+      "source": "PACE v2 Sec. 2.3.2, Eq. (9)",
+      "blocks_formal_training": true
+    },
+    {
+      "id": "control.soft_limit_band_deg",
+      "group": "control",
+      "provenance": "PAPER_RANGE",
+      "paper_value": "typically 2-5 degrees per joint",
+      "current_value": 5.0,
+      "unit": "degree",
+      "implementation_state": "ASSUMED",
+      "source": "PACE v2 Sec. 2.3.2, Clarification of joint-limit saturation",
+      "notes": "当前值处于论文范围内，但 ANYmal 的精确训练值未公开。",
+      "blocks_formal_training": true
+    },
+    {
+      "id": "control.action_scale_rad",
+      "group": "control",
+      "provenance": "LEGGEDGYM_ASSUMPTION",
+      "paper_value": null,
+      "current_value": 0.5,
+      "unit": "rad per policy action unit",
+      "implementation_state": "ASSUMED",
+      "source": "LeggedGym 8fa29acc base action_scale",
+      "notes": "PACE Eq. (8) 将 a_t 定义为关节位置 offset，但未公开 raw network output 到 a_t 的额外缩放。",
+      "blocks_formal_training": true
+    },
+    {
+      "id": "control.action_clip",
+      "group": "control",
+      "provenance": "LEGGEDGYM_ASSUMPTION",
+      "paper_value": null,
+      "current_value": [-100.0, 100.0],
+      "implementation_state": "ASSUMED",
+      "source": "LeggedGym 8fa29acc normalization.clip_actions",
+      "notes": "PACE v2 明确说明 Eq. (9) 不约束 policy action space，但未给环境侧数值裁剪范围。",
+      "blocks_formal_training": true
+    },
+    {
+      "id": "control.default_joint_pose_q0",
+      "group": "control",
+      "provenance": "LEGGEDGYM_ASSUMPTION",
+      "paper_value": null,
+      "current_value": [0.0, 0.4, -0.8, 0.0, 0.4, -0.8, 0.0, -0.4, 0.8, 0.0, -0.4, 0.8],
+      "unit": "rad",
+      "implementation_state": "ASSUMED",
+      "source": "当前 LeggedGym-derived Stage1 配置",
+      "notes": "PACE v2 使用 q0 符号但未在论文中列出 ANYmal 的完整数值。",
+      "blocks_formal_training": true
+    },
+    {
+      "id": "control.anymal_pd_gains",
+      "group": "control",
+      "provenance": "PAPER_EXACT",
+      "paper_value": {"kp": 85.0, "kd": 0.6},
+      "current_value": {"kp": 85.0, "kd": 0.6},
+      "implementation_state": "MATCH",
+      "source": "PACE v2 Table 3"
+    },
+    {
+      "id": "observation.actor_contents_and_dim",
+      "group": "observation",
+      "provenance": "PAPER_EXACT",
+      "paper_value": "48 dimensions: base linear/angular velocity, projected gravity, command, q, qdot, previous action",
+      "current_value": "相同内容和 48 维顺序",
+      "implementation_state": "MATCH",
+      "source": "PACE v2 Sec. 2.3.1"
+    },
+    {
+      "id": "observation.critic_contents_and_dim",
+      "group": "observation",
+      "provenance": "PAPER_EXACT",
+      "paper_value": "353 dimensions: noise-free actor observation plus base wrench, friction, foot contacts and 294-value height scan",
+      "current_value": "相同内容和 353 维布局",
+      "implementation_state": "MATCH",
+      "source": "PACE v2 Sec. 2.3.1"
+    },
+    {
+      "id": "observation.actor_noise_mask",
+      "group": "observation",
+      "provenance": "PAPER_EXACT",
+      "paper_value": "除 commands 和 previous action 外均添加独立同分布噪声",
+      "current_value": "commands 和 previous action 噪声为零，其余分量加噪",
+      "implementation_state": "MATCH",
+      "source": "PACE v2 Sec. 2.3.1"
+    },
+    {
+      "id": "observation.noise_distribution_and_magnitude",
+      "group": "observation",
+      "provenance": "LEGGEDGYM_ASSUMPTION",
+      "paper_value": null,
+      "current_value": "component-wise uniform noise after fixed scaling",
+      "implementation_state": "ASSUMED",
+      "source": "LeggedGym-derived Stage1 configuration",
+      "notes": "PACE v2 只说明 i.i.d. noise 的施加对象，未列分布和逐分量幅值。"
+    },
+    {
+      "id": "observation.fixed_component_scales",
+      "group": "observation",
+      "provenance": "LEGGEDGYM_ASSUMPTION",
+      "paper_value": null,
+      "current_value": "lin_vel*2, ang_vel*0.25, command=(2,2,0.25), qdot*0.05 等",
+      "implementation_state": "ASSUMED",
+      "source": "LeggedGym-derived Stage1 configuration",
+      "blocks_formal_training": true
+    },
+    {
+      "id": "observation.empirical_normalization",
+      "group": "observation",
+      "provenance": "PAPER_EXACT",
+      "paper_value": true,
+      "current_value": false,
+      "implementation_state": "MISSING",
+      "source": "PACE v2 Appendix Table 8",
+      "blocks_formal_training": true
+    },
+    {
+      "id": "observation.fixed_scale_plus_empirical_normalization_composition",
+      "group": "observation",
+      "provenance": "UNRESOLVED",
+      "paper_value": null,
+      "current_value": "fixed component scaling only",
+      "implementation_state": "ASSUMED",
+      "notes": "论文没有说明 empirical running normalization 是作用于 raw observation，还是作用于 fixed-scaled observation。",
+      "blocks_formal_training": true
+    },
+    {
+      "id": "reward.velocity_tracking",
+      "group": "reward",
+      "provenance": "PAPER_EXACT",
+      "paper_value": {"definition": "Eq. (10) planar velocity exponential plus yaw-rate exponential", "scale": 0.2},
+      "current_value": {"definition": "相同", "scale": 0.2},
+      "implementation_state": "MATCH",
+      "source": "PACE v2 Eq. (10), Table 3"
+    },
+    {
+      "id": "reward.velocity_tracking_sigma",
+      "group": "reward",
+      "provenance": "LEGGEDGYM_ASSUMPTION",
+      "paper_value": null,
+      "current_value": 0.25,
+      "implementation_state": "ASSUMED",
+      "notes": "PACE v2 给出 sigma_v 符号，但未在正文或 Table 3/8 中列出数值。",
+      "blocks_formal_training": true
+    },
+    {
+      "id": "reward.collision",
+      "group": "reward",
+      "provenance": "PAPER_EXACT",
+      "paper_value": {"definition": "joint-limit or thigh-environment collision indicator", "scale": -1.0},
+      "current_value": {"definition": "相同事件类别", "scale": -1.0},
+      "implementation_state": "MATCH",
+      "source": "PACE v2 Eq. (19), Table 3"
+    },
+    {
+      "id": "reward.contact_detection_thresholds",
+      "group": "reward",
+      "provenance": "UNRESOLVED",
+      "paper_value": null,
+      "current_value": {"foot_n": 1.0, "collision_n": 0.1, "termination_n": 1.0},
+      "unit": "N",
+      "implementation_state": "ASSUMED",
+      "notes": "论文定义事件语义，但未公开 Isaac Gym 接触力阈值。"
+    },
+    {
+      "id": "reward.foot_touchdown",
+      "group": "reward",
+      "provenance": "PAPER_EXACT",
+      "paper_value": {"history_steps": 3, "definition": "touchdown 时取 t-2 到 t 的足端速度范数最大值并对足求和", "scale": -0.1},
+      "current_value": {"history_steps": 3, "definition": "相同", "scale": -0.1},
+      "implementation_state": "MATCH",
+      "source": "PACE v2 Eq. (17)-(18), Table 3"
+    },
+    {
+      "id": "reward.penalty_half_life_iterations",
+      "group": "reward",
+      "provenance": "PAPER_RANGE",
+      "paper_value": "typically 500; task dependent",
+      "current_value": 500.0,
+      "implementation_state": "ASSUMED",
+      "source": "PACE v2 Sec. 2.3.3, Penalty scheduling",
+      "notes": "当前选择与论文典型值一致，但不能声称为已公开的 ANYmal 精确值。"
+    },
+    {
+      "id": "reward.only_positive_aggregation",
+      "group": "reward",
+      "provenance": "LEGGEDGYM_ASSUMPTION",
+      "paper_value": null,
+      "current_value": true,
+      "implementation_state": "ASSUMED",
+      "source": "LeggedGym reward aggregation semantics",
+      "notes": "PACE v2 未明确说明是否在逐步总 reward 上执行非负裁剪。",
+      "blocks_formal_training": true
+    },
+    {
+      "id": "reward.scale_by_policy_dt",
+      "group": "reward",
+      "provenance": "LEGGEDGYM_ASSUMPTION",
+      "paper_value": null,
+      "current_value": true,
+      "implementation_state": "ASSUMED",
+      "source": "LeggedGym reward preparation semantics",
+      "notes": "PACE v2 给出 reward 公式和权重，但未明确说明实现中是否再乘 policy_dt。",
+      "blocks_formal_training": true
+    },
+    {
+      "id": "reward.stage1_energy_term",
+      "group": "reward",
+      "provenance": "PROJECT_ABLATION",
+      "paper_value": "energy term enabled with ANYmal scale -16e-5 and shared penalty curriculum",
+      "current_value": "energy term removed",
+      "implementation_state": "ABLATED",
+      "source": "项目 Stage1 定义；PACE v2 Eq. (20), Table 3",
+      "notes": "Stage1-PACEv2 是研究性 Task-only 消融，不能称为 PACE 官方 baseline。"
+    },
+    {
+      "id": "reward.stage2_anymal_energy_scale",
+      "group": "reward",
+      "provenance": "PAPER_EXACT",
+      "paper_value": -0.00016,
+      "current_value": null,
+      "implementation_state": "NOT_APPLICABLE",
+      "source": "PACE v2 Table 3",
+      "notes": "记录供 Stage2 使用；不得进入 Stage1 reward。"
+    },
+    {
+      "id": "ppo.number_of_iterations",
+      "group": "ppo",
+      "provenance": "PAPER_EXACT",
+      "paper_value": 30000,
+      "current_value": 3000,
+      "implementation_state": "DIFFERENT",
+      "source": "PACE v2 Appendix Table 8",
+      "blocks_formal_training": true
+    },
+    {
+      "id": "ppo.entropy_endpoints_and_turnover",
+      "group": "ppo",
+      "provenance": "PAPER_EXACT",
+      "paper_value": {"initial": 0.002, "final": 0.0005, "turnover_iteration": 20000, "schedule": "tanh"},
+      "current_value": {"fixed": 0.01},
+      "implementation_state": "DIFFERENT",
+      "source": "PACE v2 Eq. (21)-(22), Appendix Table 8",
+      "blocks_formal_training": true
+    },
+    {
+      "id": "ppo.entropy_slope_eta",
+      "group": "ppo",
+      "provenance": "UNRESOLVED",
+      "paper_value": null,
+      "current_value": null,
+      "unit": "per iteration",
+      "implementation_state": "MISSING",
+      "source": "PACE v2 Eq. (22) defines eta but Table 8 does not provide its value",
+      "selection_rule": "不得按 locomotion performance 选择；若来源仍不可得，只允许预注册的 sensitivity experiment。",
+      "blocks_formal_training": true
+    },
+    {
+      "id": "ppo.actor_critic_hidden_dims",
+      "group": "ppo",
+      "provenance": "PAPER_EXACT",
+      "paper_value": [256, 256, 256, 128],
+      "current_value": [512, 256, 128],
+      "implementation_state": "DIFFERENT",
+      "source": "PACE v2 Appendix Table 8",
+      "blocks_formal_training": true
+    },
+    {
+      "id": "ppo.initial_policy_std",
+      "group": "ppo",
+      "provenance": "PAPER_EXACT",
+      "paper_value": 1.5,
+      "current_value": 1.0,
+      "implementation_state": "DIFFERENT",
+      "source": "PACE v2 Appendix Table 8",
+      "blocks_formal_training": true
+    },
+    {
+      "id": "ppo.number_of_mini_batches",
+      "group": "ppo",
+      "provenance": "PAPER_EXACT",
+      "paper_value": 10,
+      "current_value": 4,
+      "implementation_state": "DIFFERENT",
+      "source": "PACE v2 Appendix Table 8",
+      "blocks_formal_training": true
+    },
+    {
+      "id": "ppo.shared_exact_parameters",
+      "group": "ppo",
+      "provenance": "PAPER_EXACT",
+      "paper_value": {
+        "value_loss_coef": 1.0,
+        "clipped_value_loss": true,
+        "clip_param": 0.2,
+        "learning_epochs": 5,
+        "learning_rate": 0.001,
+        "learning_rate_schedule": "adaptive",
+        "gamma": 0.99,
+        "gae_lambda": 0.95,
+        "desired_kl": 0.01,
+        "max_grad_norm": 1.0,
+        "steps_per_env": 24,
+        "activation": "ELU"
+      },
+      "current_value": "全部相同",
+      "implementation_state": "MATCH",
+      "source": "PACE v2 Appendix Table 8"
+    },
+    {
+      "id": "ppo.number_of_environments",
+      "group": "ppo",
+      "provenance": "LEGGEDGYM_ASSUMPTION",
+      "paper_value": null,
+      "current_value": 4096,
+      "implementation_state": "ASSUMED",
+      "source": "LeggedGym-derived Stage1 configuration"
+    },
+    {
+      "id": "training.formal_seed",
+      "group": "training",
+      "provenance": "PROJECT_ABLATION",
+      "paper_value": null,
+      "current_value": 0,
+      "implementation_state": "ABLATED",
+      "notes": "固定 seed=0 是本项目控制实验变量的预注册选择。"
+    },
+    {
+      "id": "training.stage1_flat_terrain",
+      "group": "training",
+      "provenance": "PROJECT_ABLATION",
+      "paper_value": "mixed terrains: flat/rough, stairs, boxes and slopes",
+      "current_value": "flat plane",
+      "implementation_state": "ABLATED",
+      "source": "项目 Stage1 链路验证定义；PACE v2 Sec. 2.3",
+      "notes": "正式 PACE-v2 mixed-terrain protocol 不能用该 flat-only 运行替代。"
+    },
+    {
+      "id": "training.dynamics_randomization",
+      "group": "training",
+      "provenance": "PAPER_EXACT",
+      "paper_value": false,
+      "current_value": false,
+      "implementation_state": "MATCH",
+      "source": "PACE v2 Sec. 2.3"
+    },
+    {
+      "id": "training.task_and_terrain_randomization_categories",
+      "group": "training",
+      "provenance": "PAPER_EXACT",
+      "paper_value": "pushes, ground friction, flat/rough terrain, stairs, boxes and slopes",
+      "current_value": "同类机制存在；Stage1 正式运行当前选择 flat-only",
+      "implementation_state": "PARTIAL",
+      "source": "PACE v2 Sec. 2.3",
+      "notes": "具体范围、比例和 curriculum 参数未由论文完整公开。"
+    },
+    {
+      "id": "asset.flip_visual_attachments",
+      "group": "asset",
+      "provenance": "LEGGEDGYM_ASSUMPTION",
+      "paper_value": null,
+      "current_value": true,
+      "implementation_state": "ASSUMED",
+      "source": "LeggedGym 8fa29acc asset default",
+      "notes": "仅修正 mesh 坐标转换，不改变 articulation、collision、MDP、PPO 或 checkpoint。"
+    }
+  ],
+  "formal_freeze_blockers": [
+    "control.eq9_joint_limit_saturation",
+    "control.soft_limit_band_deg",
+    "control.action_scale_rad",
+    "control.action_clip",
+    "control.default_joint_pose_q0",
+    "observation.fixed_component_scales",
+    "observation.empirical_normalization",
+    "observation.fixed_scale_plus_empirical_normalization_composition",
+    "reward.velocity_tracking_sigma",
+    "reward.only_positive_aggregation",
+    "reward.scale_by_policy_dt",
+    "ppo.number_of_iterations",
+    "ppo.entropy_endpoints_and_turnover",
+    "ppo.entropy_slope_eta",
+    "ppo.actor_critic_hidden_dims",
+    "ppo.initial_policy_std",
+    "ppo.number_of_mini_batches"
+  ],
+  "immediate_paper_exact_implementation_scope": [
+    "control.eq9_joint_limit_saturation",
+    "observation.empirical_normalization",
+    "ppo.actor_critic_hidden_dims",
+    "ppo.initial_policy_std",
+    "ppo.number_of_mini_batches",
+    "ppo.number_of_iterations",
+    "ppo.entropy_endpoints_and_turnover"
+  ],
+  "forbidden_until_protocol_freeze": [
+    "正式 PPO 训练",
+    "按 locomotion performance 调 entropy_slope_eta",
+    "将 [-1,1] hard action clip 合入正式 MDP",
+    "将 raw-action L2 或 torque L2 合入正式 reward",
+    "把 Stage1 energy-off 称为 PACE 官方 baseline",
+    "把 LeggedGym 默认值标成 PACE 已确认值"
+  ],
+  "stage_labels": {
+    "Stage1-LG": "历史 LeggedGym-derived energy-off failure evidence；冻结且不再修改。",
+    "Stage1-D": "动作裁剪、L2 和 torque 等 forensic experiments；不得进入正式 MDP。",
+    "Stage1-PACEv2": "PACE-v2 aligned protocol with energy OFF；项目定义的 Task-only ablation。",
+    "Stage2-PACEv2": "与 Stage1-PACEv2 相同协议，启用 PACE energy reward 和 curriculum。",
+    "Stage3-PACE-ECO": "与 Stage2 相同协议，仅将 energy reward shaping 替换为 energy constraint。"
+  }
+}
