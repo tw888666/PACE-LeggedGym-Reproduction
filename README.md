@@ -67,6 +67,10 @@ protocol provenance matrix（协议来源矩阵）冻结点。机器可读规范
 当前 `validation_training_allowed=false` 且 `formal_training_allowed=false`。12 个 formal
 blocker 已重分类为 11 个 semantic、1 个 reproducibility、0 个 formal-reporting；审计表见
 [`provenance/gpt-Stage1-PACEv2-阻塞项重分类.md`](provenance/gpt-Stage1-PACEv2-阻塞项重分类.md)。
+优先级 1 的 action 公开证据搜索记录见
+[`provenance/gpt-Stage1-PACEv2-action证据审计.md`](provenance/gpt-Stage1-PACEv2-action证据审计.md)：
+论文已确定 `a_t` 的物理语义和 `q_target=q0+a_t`，但没有找到 ANYmal locomotion 的数值
+`q0` 或 raw Gaussian output 到 `a_t [rad]` 的权威映射，相关 blocker 和 gate 均保持不变。
 Eq. (9) 和 normalizer 虽已具备独立实现，仍未接入历史默认 pipeline。本分支当前只允许
 纯函数和组件测试，不得启动短程或正式 PPO 训练。
 

@@ -95,6 +95,32 @@ class PaceV2ProtocolMatrixTest(unittest.TestCase):
         self.assertFalse(entry["evidence_scope"]["locomotion_evidence"])
         self.assertNotIn("blocks_formal_training", entry)
 
+    def test_action_evidence_audit_preserves_unresolved_status_and_gates(self):
+        audit = self.matrix["action_evidence_audit"]
+        self.assertEqual(
+            audit["status"],
+            "SEARCHED_NO_AUTHORITATIVE_LOCOMOTION_VALUE_FOUND",
+        )
+        self.assertEqual(audit["gate_effect"], "NONE")
+        self.assertFalse(self.matrix["baseline"]["validation_training_allowed"])
+        self.assertFalse(self.matrix["baseline"]["formal_training_allowed"])
+
+        entries = {entry["id"]: entry for entry in self.matrix["matrix"]}
+        self.assertEqual(set(audit["still_unresolved"]), {
+            "control.network_output_to_action_offset_mapping",
+            "control.action_output_clipping",
+            "control.default_posture_q0",
+        })
+        for entry_id in audit["still_unresolved"]:
+            self.assertEqual(entries[entry_id]["provenance"], "UNRESOLVED")
+            self.assertEqual(
+                entries[entry_id]["evidence_audit_status"],
+                audit["status"],
+            )
+            self.assertIn(entry_id, self.matrix["formal_freeze_blockers"])
+
+        self.assertEqual(len(self.matrix["formal_freeze_blockers"]), 12)
+
 
 if __name__ == "__main__":
     unittest.main()

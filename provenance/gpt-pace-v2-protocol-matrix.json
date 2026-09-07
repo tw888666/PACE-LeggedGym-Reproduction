@@ -32,7 +32,38 @@
       "commit": "f07259c09b517ab5118bb1d01b0a6078cf8e1c31",
       "url": "https://github.com/leggedrobotics/pace-sim2real/tree/f07259c09b517ab5118bb1d01b0a6078cf8e1c31",
       "scope": "system-identification/data-collection implementation; not locomotion-policy training evidence"
+    },
+    "pace_sim2real_issue_30": {
+      "url": "https://github.com/leggedrobotics/pace-sim2real/issues/30#issuecomment-5140694339",
+      "scope": "作者确认当前公开仓库不含论文 locomotion training environment，且暂无发布 trained locomotion checkpoints 的计划。"
+    },
+    "pace_data": {
+      "doi": "10.3929/ethz-c-000783505",
+      "url": "https://doi.org/10.3929/ethz-c-000783505",
+      "scope": "论文图表对应的测量时序数据；当前公开归档未提供 locomotion policy artifact 或 action mapping metadata。"
     }
+  },
+  "action_evidence_audit": {
+    "audit_date": "2026-09-07",
+    "status": "SEARCHED_NO_AUTHORITATIVE_LOCOMOTION_VALUE_FOUND",
+    "report": "provenance/gpt-Stage1-PACEv2-action证据审计.md",
+    "searched_sources": [
+      "PACE arXiv v1/v2 TeX source and bundled files",
+      "pace-sim2real main at f07259c09b517ab5118bb1d01b0a6078cf8e1c31",
+      "pace-sim2real reachable history, tags v0.1.0-v0.1.2, and public branches",
+      "pace-sim2real issues 15, 22, 23, and 30 including maintainer replies",
+      "pace_data DOI metadata and locally available ANYmal NumPy archives"
+    ],
+    "resolved_from_paper": [
+      "control.action_physical_semantics",
+      "control.target_mapping"
+    ],
+    "still_unresolved": [
+      "control.network_output_to_action_offset_mapping",
+      "control.action_output_clipping",
+      "control.default_posture_q0"
+    ],
+    "gate_effect": "NONE"
   },
   "provenance_classes": {
     "PAPER_EXACT": "PACE v2 明确给出离散值、公式或布尔语义。",
@@ -123,6 +154,8 @@
       "implementation_state": "ASSUMED",
       "source": "LeggedGym 8fa29acc base action_scale",
       "notes": "0.5 不与 Eq. (8) 自动矛盾，但只是 LeggedGym-derived 实现参数，不能标成 PACE locomotion 已确认值。",
+      "evidence_audit_status": "SEARCHED_NO_AUTHORITATIVE_LOCOMOTION_VALUE_FOUND",
+      "audited_transform_components": ["Gaussian sample", "tanh", "multiplicative scale", "clip", "other transform"],
       "blocker_class": "SEMANTIC",
       "resolution_priority": 1,
       "resolution_policy": "UNIQUE_PROTOCOL_VALUE_REQUIRED",
@@ -138,6 +171,7 @@
       "implementation_state": "ASSUMED",
       "source": "LeggedGym 8fa29acc normalization.clip_actions",
       "notes": "当前 ±100 只能描述历史 LeggedGym-derived 路径，不能由 Eq. (9) 推导，也不能改成 ±1 作为论文结论。",
+      "evidence_audit_status": "SEARCHED_NO_AUTHORITATIVE_LOCOMOTION_VALUE_FOUND",
       "blocker_class": "SEMANTIC",
       "resolution_priority": 1,
       "resolution_policy": "UNIQUE_PROTOCOL_VALUE_REQUIRED",
@@ -154,6 +188,13 @@
       "implementation_state": "ASSUMED",
       "source": "当前 LeggedGym-derived Stage1 配置",
       "notes": "PACE v2 使用 q0 符号但未在论文中列出 ANYmal 的完整数值。",
+      "evidence_audit_status": "SEARCHED_NO_AUTHORITATIVE_LOCOMOTION_VALUE_FOUND",
+      "excluded_substitutes": [
+        "URDF zero configuration",
+        "LeggedGym default ANYmal posture",
+        "pace-sim2real SysID initial or trajectory-bias posture",
+        "current Stage1 LeggedGym-derived [0, +/-0.4, +/-0.8] posture"
+      ],
       "blocker_class": "SEMANTIC",
       "resolution_priority": 1,
       "resolution_policy": "UNIQUE_PROTOCOL_VALUE_REQUIRED",
@@ -169,7 +210,7 @@
       "implementation_state": "NOT_APPLICABLE",
       "source": "https://github.com/leggedrobotics/pace-sim2real/blob/f07259c09b517ab5118bb1d01b0a6078cf8e1c31/source/pace_sim2real/pace_sim2real/tasks/manager_based/pace/pace_sim2real_env_cfg.py#L59-L63",
       "evidence_scope": {"relevance": "system-identification/data-collection path", "locomotion_evidence": false},
-      "notes": "该公开配置精确说明 SysID 环境使用 absolute target；不能作为 PACE locomotion action_scale=1.0 的证据。"
+      "notes": "该公开配置精确说明 SysID 环境使用 absolute target；历史审计表明该配置由 SysID 路径引入，当前公开历史未出现论文 locomotion 环境或 policy artifact，不能作为 PACE locomotion action_scale=1.0 的证据。"
     },
     {
       "id": "control.anymal_pd_gains",
