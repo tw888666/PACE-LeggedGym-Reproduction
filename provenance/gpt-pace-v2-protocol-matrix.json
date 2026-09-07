@@ -27,11 +27,17 @@
     "legged_gym": {
       "commit": "8fa29acc6fd1910c3d9659eef6310bdd301cde0a",
       "url": "https://github.com/leggedrobotics/legged_gym/tree/8fa29acc6fd1910c3d9659eef6310bdd301cde0a"
+    },
+    "pace_sim2real_public": {
+      "commit": "f07259c09b517ab5118bb1d01b0a6078cf8e1c31",
+      "url": "https://github.com/leggedrobotics/pace-sim2real/tree/f07259c09b517ab5118bb1d01b0a6078cf8e1c31",
+      "scope": "system-identification/data-collection implementation; not locomotion-policy training evidence"
     }
   },
   "provenance_classes": {
     "PAPER_EXACT": "PACE v2 明确给出离散值、公式或布尔语义。",
     "PAPER_RANGE": "PACE v2 只给范围、典型值或任务相关建议，不能声称为 ANYmal 精确值。",
+    "PUBLIC_CODE_CONTEXT_ONLY": "公开代码中的值和语义可精确核验，但该代码路径不属于论文 locomotion policy，不能跨场景外推。",
     "LEGGEDGYM_ASSUMPTION": "当前值继承自指定 LeggedGym，但 PACE v2 未确认。",
     "UNRESOLVED": "PACE v2 和当前可用上游实现均不足以确定该值或组合语义。",
     "PROJECT_ABLATION": "由本项目为隔离实验变量主动定义，不属于 PACE 原论文设置。"
@@ -58,14 +64,24 @@
   },
   "matrix": [
     {
-      "id": "control.action_offset_semantics",
+      "id": "control.action_physical_semantics",
       "group": "control",
       "provenance": "PAPER_EXACT",
-      "paper_value": "policy 输出相对于默认姿态 q0 的 joint-position offset；q_target=q0+a_t",
-      "current_value": "q_target=q0+0.5*clip(policy_action,-100,100)",
-      "implementation_state": "PARTIAL",
+      "paper_value": "a_t 是相对于默认姿态 q0 的关节位置偏移，物理单位为 rad",
+      "current_value": "Stage1 将策略动作解释为相对默认姿态的关节位置偏移",
+      "implementation_state": "MATCH",
       "source": "PACE v2 Sec. 2.3.2, Eq. (8)",
-      "notes": "相对默认姿态的语义一致；raw policy output 到论文 a_t 的缩放和裁剪定义未决。"
+      "notes": "论文变量 a_t 的物理语义已经解决；raw network output 到 a_t 的实现映射由独立 blocker 跟踪。"
+    },
+    {
+      "id": "control.target_mapping",
+      "group": "control",
+      "provenance": "PAPER_EXACT",
+      "paper_value": "q_target=q0+a_t",
+      "current_value": "默认姿态加关节位置偏移后形成 PD target",
+      "implementation_state": "MATCH",
+      "source": "PACE v2 Sec. 2.3.2, Eq. (8)-(9)",
+      "notes": "这里确认的是论文变量层映射，不确认网络输出是否经过额外 scale、clip、tanh 或其他 transform。"
     },
     {
       "id": "control.eq9_joint_limit_saturation",
@@ -98,15 +114,15 @@
       "blocks_formal_training": true
     },
     {
-      "id": "control.action_scale_rad",
+      "id": "control.network_output_to_action_offset_mapping",
       "group": "control",
-      "provenance": "LEGGEDGYM_ASSUMPTION",
-      "paper_value": null,
-      "current_value": 0.5,
-      "unit": "rad per policy action unit",
+      "provenance": "UNRESOLVED",
+      "paper_value": "a_t=pi(o_t^prop)，a_t 是 rad 单位的物理关节位置偏移；未公开 network raw output 到 a_t 的额外 transform",
+      "current_value": {"mapping": "a_t=0.5*network_output", "scale": 0.5, "possible_additional_transform": "unresolved"},
+      "unit": "rad per network output unit",
       "implementation_state": "ASSUMED",
       "source": "LeggedGym 8fa29acc base action_scale",
-      "notes": "PACE Eq. (8) 将 a_t 定义为关节位置 offset，但未公开 raw network output 到 a_t 的额外缩放。",
+      "notes": "0.5 不与 Eq. (8) 自动矛盾，但只是 LeggedGym-derived 实现参数，不能标成 PACE locomotion 已确认值。",
       "blocker_class": "SEMANTIC",
       "resolution_priority": 1,
       "resolution_policy": "UNIQUE_PROTOCOL_VALUE_REQUIRED",
@@ -114,14 +130,14 @@
       "blocks_formal_training": true
     },
     {
-      "id": "control.action_clip",
+      "id": "control.action_output_clipping",
       "group": "control",
-      "provenance": "LEGGEDGYM_ASSUMPTION",
-      "paper_value": null,
+      "provenance": "UNRESOLVED",
+      "paper_value": "Eq. (9) 不约束 policy action space；论文未公开 environment-side action clipping 数值",
       "current_value": [-100.0, 100.0],
       "implementation_state": "ASSUMED",
       "source": "LeggedGym 8fa29acc normalization.clip_actions",
-      "notes": "PACE v2 明确说明 Eq. (9) 不约束 policy action space，但未给环境侧数值裁剪范围。",
+      "notes": "当前 ±100 只能描述历史 LeggedGym-derived 路径，不能由 Eq. (9) 推导，也不能改成 ±1 作为论文结论。",
       "blocker_class": "SEMANTIC",
       "resolution_priority": 1,
       "resolution_policy": "UNIQUE_PROTOCOL_VALUE_REQUIRED",
@@ -129,10 +145,10 @@
       "blocks_formal_training": true
     },
     {
-      "id": "control.default_joint_pose_q0",
+      "id": "control.default_posture_q0",
       "group": "control",
-      "provenance": "LEGGEDGYM_ASSUMPTION",
-      "paper_value": null,
+      "provenance": "UNRESOLVED",
+      "paper_value": "论文定义 q0 为 default posture，但未公开 ANYmal 的 12 维数值",
       "current_value": [0.0, 0.4, -0.8, 0.0, 0.4, -0.8, 0.0, -0.4, 0.8, 0.0, -0.4, 0.8],
       "unit": "rad",
       "implementation_state": "ASSUMED",
@@ -143,6 +159,17 @@
       "resolution_policy": "UNIQUE_PROTOCOL_VALUE_REQUIRED",
       "blocks_validation_training": true,
       "blocks_formal_training": true
+    },
+    {
+      "id": "control.public_pace_sim2real_action_cfg_scope",
+      "group": "control",
+      "provenance": "PUBLIC_CODE_CONTEXT_ONLY",
+      "paper_value": null,
+      "current_value": {"scale": 1.0, "use_default_offset": false, "action_semantics": "absolute joint position targets"},
+      "implementation_state": "NOT_APPLICABLE",
+      "source": "https://github.com/leggedrobotics/pace-sim2real/blob/f07259c09b517ab5118bb1d01b0a6078cf8e1c31/source/pace_sim2real/pace_sim2real/tasks/manager_based/pace/pace_sim2real_env_cfg.py#L59-L63",
+      "evidence_scope": {"relevance": "system-identification/data-collection path", "locomotion_evidence": false},
+      "notes": "该公开配置精确说明 SysID 环境使用 absolute target；不能作为 PACE locomotion action_scale=1.0 的证据。"
     },
     {
       "id": "control.anymal_pd_gains",
@@ -487,9 +514,9 @@
   "formal_freeze_blockers": [
     "control.eq9_joint_limit_saturation",
     "control.soft_limit_band_deg",
-    "control.action_scale_rad",
-    "control.action_clip",
-    "control.default_joint_pose_q0",
+    "control.network_output_to_action_offset_mapping",
+    "control.action_output_clipping",
+    "control.default_posture_q0",
     "observation.fixed_component_scales",
     "observation.empirical_normalization",
     "observation.fixed_scale_plus_empirical_normalization_composition",

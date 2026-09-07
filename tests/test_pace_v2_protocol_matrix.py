@@ -66,6 +66,35 @@ class PaceV2ProtocolMatrixTest(unittest.TestCase):
         self.assertEqual(classes["REPRODUCIBILITY"], ["ppo.entropy_slope_eta"])
         self.assertEqual(classes["FORMAL_REPORTING"], [])
 
+    def test_action_physical_semantics_are_separate_from_network_mapping(self):
+        entries = {entry["id"]: entry for entry in self.matrix["matrix"]}
+        for entry_id in (
+            "control.action_physical_semantics",
+            "control.target_mapping",
+        ):
+            self.assertEqual(entries[entry_id]["provenance"], "PAPER_EXACT")
+            self.assertEqual(entries[entry_id]["implementation_state"], "MATCH")
+            self.assertNotIn("blocks_formal_training", entries[entry_id])
+
+        for entry_id in (
+            "control.network_output_to_action_offset_mapping",
+            "control.action_output_clipping",
+            "control.default_posture_q0",
+        ):
+            self.assertEqual(entries[entry_id]["provenance"], "UNRESOLVED")
+            self.assertTrue(entries[entry_id]["blocks_validation_training"])
+            self.assertTrue(entries[entry_id]["blocks_formal_training"])
+
+    def test_public_sysid_action_config_is_not_locomotion_evidence(self):
+        entry = next(
+            item
+            for item in self.matrix["matrix"]
+            if item["id"] == "control.public_pace_sim2real_action_cfg_scope"
+        )
+        self.assertEqual(entry["provenance"], "PUBLIC_CODE_CONTEXT_ONLY")
+        self.assertFalse(entry["evidence_scope"]["locomotion_evidence"])
+        self.assertNotIn("blocks_formal_training", entry)
+
 
 if __name__ == "__main__":
     unittest.main()

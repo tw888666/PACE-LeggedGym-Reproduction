@@ -41,9 +41,9 @@ PACE_V2_FORMAL 正式训练
 
 | 优先级 | blocker | 首要分类 | 为什么会阻塞 | 允许的解决方式 |
 |---:|---|---|---|---|
-| 1 | `control.action_scale_rad` | SEMANTIC | 改变 raw policy output 到关节位置 offset 的映射 | validation 前冻结唯一协议值 |
-| 1 | `control.action_clip` | SEMANTIC | 改变 policy action space 的有效边界 | validation 前冻结唯一协议语义 |
-| 1 | `control.default_joint_pose_q0` | SEMANTIC | 改变所有关节 target 的零点 | validation 前冻结唯一协议值 |
+| 1 | `control.network_output_to_action_offset_mapping` | SEMANTIC | scale、tanh 或其他 transform 会改变 raw policy output 到论文变量 `a_t` 的映射 | validation 前冻结唯一协议值 |
+| 1 | `control.action_output_clipping` | SEMANTIC | environment-side clip 会改变 policy action space 的有效边界 | validation 前冻结唯一协议语义 |
+| 1 | `control.default_posture_q0` | SEMANTIC | 12 维数值改变所有关节 target 的零点 | validation 前冻结唯一协议值 |
 | 2 | `control.eq9_joint_limit_saturation` | SEMANTIC | 是否接入及接入位置会改变施加给 PD 的 target | validation 前冻结唯一接线语义 |
 | 2 | `control.soft_limit_band_deg` | SEMANTIC | 改变 Eq. (9) 生效区间和 transition | 在论文 `2–5°` 范围内预注册复现选择；禁止按性能选值 |
 | 3 | `observation.fixed_component_scales` | SEMANTIC | 改变 policy 输入坐标系 | 与 normalization composition 一并冻结 |
@@ -57,10 +57,20 @@ PACE_V2_FORMAL 正式训练
 `FORMAL_REPORTING` 当前为空：12 项中没有任何一项仅靠在论文中补一句说明就能消除；
 每一项都会影响实际控制、输入、奖励或优化过程。
 
-## Action representation 的边界
+## Action representation 的已解决与未决边界
 
 PACE v2 Eq. (8) 已明确 action 是相对默认姿态的 joint-position offset（关节位置偏移）。
-当前未决的不是“位置控制还是力矩控制”，而是以下组合的完整数值语义：
+因此以下两项已经是 `PAPER_EXACT / MATCH`，不属于 blocker：
+
+```text
+action_physical_semantics:
+    a_t = relative joint-position offset [rad]
+
+target_mapping:
+    q_target = q0 + a_t
+```
+
+当前未决的不是“位置控制还是力矩控制”，而是以下实现层组合的完整数值语义：
 
 ```text
 raw policy output
@@ -73,10 +83,28 @@ raw policy output
 
 因此优先级 1 的三个子项没有冻结前，不应决定 Eq. (9) 的最终接线配置。
 
+## 公开 pace-sim2real 配置的证据边界
+
+公开仓库 `f07259c09b517ab5118bb1d01b0a6078cf8e1c31` 中的配置是：
+
+```text
+JointPositionActionCfg(
+    scale=1.0,
+    use_default_offset=False
+)
+action semantics = absolute joint position targets
+```
+
+该配置属于 system-identification/data-collection（系统辨识/数据采集）路径，不是论文
+locomotion policy 的完整训练环境。因此它只能证明该公开 SysID 路径的 absolute target
+语义，不能证明 PACE locomotion 使用 `action_scale=1.0`。机器可读矩阵将其标记为
+`PUBLIC_CODE_CONTEXT_ONLY`，且 `locomotion_evidence=false`。
+
 ## 下一步审计顺序
 
-1. 对照 PACE 作者实现、补充材料和固定 LeggedGym commit，追溯 action scale、clip 和
-   ANYmal `q0`；找不到精确来源时，形成一次性预注册选择，不做 locomotion 调参。
+1. 对照 PACE 作者 locomotion 实现、补充材料和固定 LeggedGym commit，只追溯两个问题：
+   ANYmal 的 12 维 `q0`；network raw output 到论文 `a_t [rad]` 的 scale/clip/tanh 等映射。
+   找不到精确来源时，形成一次性预注册选择，不做 locomotion 调参。
 2. 冻结 Eq. (9) 接线位置，并把 `5°` 或其他论文范围内取值登记为预注册复现选择。
 3. 唯一确定 observation normalization（观测归一化）的组合顺序及训练/推理/checkpoint
    语义。
