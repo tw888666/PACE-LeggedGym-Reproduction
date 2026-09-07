@@ -64,9 +64,11 @@ protocol provenance matrix（协议来源矩阵）冻结点。机器可读规范
 - 由 provenance matrix 条目自动推导 blockers 的 fail-closed formal gate
   （故障关闭正式训练门禁）。
 
-当前 `formal_training_allowed=false`。Eq. (9) 和 normalizer 虽已具备独立实现，仍未接入
-历史默认 pipeline；soft band、entropy `eta`、action representation、normalization
-composition 等未决项继续阻塞 `PACE_V2_FORMAL`。本分支不得启动正式 PPO 训练。
+当前 `validation_training_allowed=false` 且 `formal_training_allowed=false`。12 个 formal
+blocker 已重分类为 11 个 semantic、1 个 reproducibility、0 个 formal-reporting；审计表见
+[`provenance/gpt-Stage1-PACEv2-阻塞项重分类.md`](provenance/gpt-Stage1-PACEv2-阻塞项重分类.md)。
+Eq. (9) 和 normalizer 虽已具备独立实现，仍未接入历史默认 pipeline。本分支当前只允许
+纯函数和组件测试，不得启动短程或正式 PPO 训练。
 
 ## Stage 1 PACE-derived energy-off task ablation（PACE 派生关闭能耗项任务消融）
 

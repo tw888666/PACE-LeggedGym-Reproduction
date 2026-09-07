@@ -13,6 +13,7 @@ from pace_stage1.protocol_gate import (
     DEFAULT_PROTOCOL_MATRIX_PATH,
     formal_training_status,
     require_formal_training_allowed,
+    require_validation_training_allowed,
 )
 
 
@@ -39,7 +40,7 @@ class PaceV2ProfileTest(unittest.TestCase):
         self.assertEqual(profile.ppo.entropy.final, 0.0005)
         self.assertEqual(profile.ppo.entropy.turnover_iteration, 20_000)
         self.assertIsNone(profile.ppo.entropy.slope_eta)
-        self.assertTrue(profile.allows_short_validation)
+        self.assertFalse(profile.allows_short_validation)
         self.assertFalse(profile.allows_formal_training)
         self.assertEqual(
             set(profile.unresolved_parameters),
@@ -49,9 +50,40 @@ class PaceV2ProfileTest(unittest.TestCase):
     def test_current_matrix_blocks_formal_profile(self):
         status = formal_training_status()
         self.assertFalse(status.allowed)
+        self.assertFalse(status.validation_allowed)
+        self.assertEqual(len(status.semantic_blockers), 11)
+        self.assertEqual(status.reproducibility_blockers, ("ppo.entropy_slope_eta",))
+        self.assertEqual(status.formal_reporting_blockers, ())
         self.assertTrue(status.blocking_items)
         with self.assertRaises(RuntimeError):
             pace_v2_formal_profile()
+        with self.assertRaises(RuntimeError):
+            require_validation_training_allowed()
+
+    def test_validation_can_open_after_only_semantic_blockers_are_resolved(self):
+        payload = json.loads(DEFAULT_PROTOCOL_MATRIX_PATH.read_text(encoding="utf-8"))
+        remaining_formal_blockers = []
+        for entry in payload["matrix"]:
+            if entry.get("blocker_class") == "SEMANTIC":
+                entry.pop("blocks_validation_training", None)
+                entry.pop("blocks_formal_training", None)
+            elif entry.get("blocks_formal_training") is True:
+                remaining_formal_blockers.append(entry["id"])
+        payload["formal_freeze_blockers"] = remaining_formal_blockers
+        payload["baseline"]["validation_training_allowed"] = True
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / "matrix.json"
+            path.write_text(json.dumps(payload), encoding="utf-8")
+            status = require_validation_training_allowed(path)
+            self.assertTrue(status.validation_allowed)
+            self.assertFalse(status.allowed)
+            self.assertEqual(status.semantic_blockers, ())
+            self.assertEqual(
+                status.reproducibility_blockers, ("ppo.entropy_slope_eta",)
+            )
+            self.assertTrue(
+                pace_v2_validation_profile(250, path).allows_short_validation
+            )
 
     def test_gate_fails_closed_when_matrix_approval_is_not_true(self):
         payload = json.loads(DEFAULT_PROTOCOL_MATRIX_PATH.read_text(encoding="utf-8"))

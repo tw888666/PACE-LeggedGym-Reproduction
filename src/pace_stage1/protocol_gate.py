@@ -17,8 +17,13 @@ DEFAULT_PROTOCOL_MATRIX_PATH = (
 @dataclass(frozen=True)
 class FormalTrainingStatus:
     allowed: bool
+    validation_allowed: bool
     blocking_items: Tuple[str, ...]
+    semantic_blockers: Tuple[str, ...]
+    reproducibility_blockers: Tuple[str, ...]
+    formal_reporting_blockers: Tuple[str, ...]
     declared_allowed: bool
+    declared_validation_allowed: bool
     matrix_path: Path
 
 
@@ -47,12 +52,28 @@ def formal_training_status(
     if len(ids) != len(set(ids)):
         raise RuntimeError("protocol matrix contains duplicate ids")
 
+    blocker_classes = ("SEMANTIC", "REPRODUCIBILITY", "FORMAL_REPORTING")
+    formal_entries = [
+        entry for entry in entries if entry.get("blocks_formal_training") is True
+    ]
+    for entry in formal_entries:
+        if entry.get("blocker_class") not in blocker_classes:
+            raise RuntimeError(
+                f"formal blocker {entry['id']} has no valid blocker_class"
+            )
+        if entry.get("resolution_priority") not in (1, 2, 3, 4):
+            raise RuntimeError(
+                f"formal blocker {entry['id']} has no valid resolution_priority"
+            )
+        if entry.get("resolution_policy") not in payload.get(
+            "resolution_policies", {}
+        ):
+            raise RuntimeError(
+                f"formal blocker {entry['id']} has no valid resolution_policy"
+            )
+
     derived_blockers = tuple(
-        sorted(
-            entry["id"]
-            for entry in entries
-            if entry.get("blocks_formal_training") is True
-        )
+        sorted(entry["id"] for entry in formal_entries)
     )
     declared_blockers = tuple(sorted(payload.get("formal_freeze_blockers", ())))
     if derived_blockers != declared_blockers:
@@ -60,14 +81,60 @@ def formal_training_status(
             "protocol matrix blocker index disagrees with entry-level blockers"
         )
 
-    declared_allowed = payload.get("baseline", {}).get("formal_training_allowed") is True
+    classified = {
+        blocker_class: tuple(
+            sorted(
+                entry["id"]
+                for entry in formal_entries
+                if entry["blocker_class"] == blocker_class
+            )
+        )
+        for blocker_class in blocker_classes
+    }
+    validation_blockers = tuple(
+        sorted(
+            entry["id"]
+            for entry in formal_entries
+            if entry.get("blocks_validation_training") is True
+        )
+    )
+    if validation_blockers != classified["SEMANTIC"]:
+        raise RuntimeError(
+            "validation blockers must exactly match unresolved semantic blockers"
+        )
+
+    baseline = payload.get("baseline", {})
+    declared_validation_allowed = (
+        baseline.get("validation_training_allowed") is True
+    )
+    declared_allowed = baseline.get("formal_training_allowed") is True
+    validation_allowed = declared_validation_allowed and not validation_blockers
     allowed = declared_allowed and not derived_blockers
     return FormalTrainingStatus(
         allowed=allowed,
+        validation_allowed=validation_allowed,
         blocking_items=derived_blockers,
+        semantic_blockers=classified["SEMANTIC"],
+        reproducibility_blockers=classified["REPRODUCIBILITY"],
+        formal_reporting_blockers=classified["FORMAL_REPORTING"],
         declared_allowed=declared_allowed,
+        declared_validation_allowed=declared_validation_allowed,
         matrix_path=path,
     )
+
+
+def require_validation_training_allowed(
+    path: Path = DEFAULT_PROTOCOL_MATRIX_PATH,
+) -> FormalTrainingStatus:
+    status = formal_training_status(path)
+    if not status.validation_allowed:
+        blockers = ", ".join(status.semantic_blockers)
+        reason = blockers or "matrix validation approval is not true"
+        raise RuntimeError(
+            "PACE_V2_VALIDATION training is prohibited by the protocol matrix; "
+            f"semantic_blockers=[{reason}]"
+        )
+    return status
 
 
 def require_formal_training_allowed(

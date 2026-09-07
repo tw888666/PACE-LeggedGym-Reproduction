@@ -99,15 +99,16 @@ def pace_v2_validation_profile(
 
     if max_iterations <= 0 or max_iterations >= 30_000:
         raise ValueError("validation iterations must be in [1, 29999]")
+    status = formal_training_status(matrix_path)
     return ProtocolProfile(
         identity=ProtocolIdentity.PACE_V2_VALIDATION,
         classification="PACE V2 INFRASTRUCTURE VALIDATION / NON-FORMAL",
         ppo=PaceV2PPOConfig(max_iterations=max_iterations),
         requested_iterations=max_iterations,
         formal=False,
-        allows_short_validation=True,
+        allows_short_validation=status.validation_allowed,
         allows_formal_training=False,
-        unresolved_parameters=formal_training_status(matrix_path).blocking_items,
+        unresolved_parameters=status.blocking_items,
     )
 
 

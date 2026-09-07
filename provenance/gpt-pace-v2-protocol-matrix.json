@@ -7,8 +7,10 @@
     "branch": "codex/stage1-pace-v2-spec",
     "parent_commit": "80d637dbd7f1729dca6e6b16b59483cb8f4d478d",
     "parent_classification": "LeggedGym-derived PACE energy-off reconstruction with diagnostics",
+    "validation_training_allowed": false,
+    "validation_reason": "仍有会改变 MDP 或 policy semantics 的 semantic blockers；只允许纯函数和组件级测试。",
     "formal_training_allowed": false,
-    "reason": "协议仍包含阻塞正式训练的未决项；本文件只冻结来源审计，不冻结最终训练配置。"
+    "formal_reason": "协议仍包含阻塞正式训练的未决项；本文件只冻结来源审计，不冻结最终训练配置。"
   },
   "authoritative_sources": {
     "pace_v2": {
@@ -44,6 +46,16 @@
     "ABLATED": "当前差异是项目主动消融。",
     "NOT_APPLICABLE": "该项不进入当前阶段的可执行协议。"
   },
+  "blocker_classes": {
+    "SEMANTIC": "未解决会改变 action/transition、policy observation 或 reward，因此阻塞 PACE_V2_VALIDATION 训练和正式训练。",
+    "REPRODUCIBILITY": "不改变 MDP，但会改变优化轨迹或复现实验细节；允许在语义冻结后进行非正式短程验证，仍阻塞正式训练。",
+    "FORMAL_REPORTING": "不改变训练定义，只影响正式结果的来源声明或报告完整性；不阻塞短程验证。"
+  },
+  "resolution_policies": {
+    "UNIQUE_PROTOCOL_VALUE_REQUIRED": "进入短程验证前必须冻结唯一的协议语义或数值。",
+    "PREREGISTERED_REPRODUCTION_CHOICE": "论文只给范围或未公开精确值；允许透明预注册一个复现选择，不得按性能调参。",
+    "PREREGISTERED_WITH_SENSITIVITY": "允许透明预注册假设，但正式报告必须包含敏感性分析。"
+  },
   "matrix": [
     {
       "id": "control.action_offset_semantics",
@@ -63,6 +75,10 @@
       "current_value": "独立纯函数已实现并测试；历史 target pipeline 未启用",
       "implementation_state": "READY_DISABLED",
       "source": "PACE v2 Sec. 2.3.2, Eq. (9)",
+      "blocker_class": "SEMANTIC",
+      "resolution_priority": 2,
+      "resolution_policy": "UNIQUE_PROTOCOL_VALUE_REQUIRED",
+      "blocks_validation_training": true,
       "blocks_formal_training": true
     },
     {
@@ -75,6 +91,10 @@
       "implementation_state": "ASSUMED",
       "source": "PACE v2 Sec. 2.3.2, Clarification of joint-limit saturation",
       "notes": "当前值处于论文范围内，但 ANYmal 的精确训练值未公开。",
+      "blocker_class": "SEMANTIC",
+      "resolution_priority": 2,
+      "resolution_policy": "PREREGISTERED_REPRODUCTION_CHOICE",
+      "blocks_validation_training": true,
       "blocks_formal_training": true
     },
     {
@@ -87,6 +107,10 @@
       "implementation_state": "ASSUMED",
       "source": "LeggedGym 8fa29acc base action_scale",
       "notes": "PACE Eq. (8) 将 a_t 定义为关节位置 offset，但未公开 raw network output 到 a_t 的额外缩放。",
+      "blocker_class": "SEMANTIC",
+      "resolution_priority": 1,
+      "resolution_policy": "UNIQUE_PROTOCOL_VALUE_REQUIRED",
+      "blocks_validation_training": true,
       "blocks_formal_training": true
     },
     {
@@ -98,6 +122,10 @@
       "implementation_state": "ASSUMED",
       "source": "LeggedGym 8fa29acc normalization.clip_actions",
       "notes": "PACE v2 明确说明 Eq. (9) 不约束 policy action space，但未给环境侧数值裁剪范围。",
+      "blocker_class": "SEMANTIC",
+      "resolution_priority": 1,
+      "resolution_policy": "UNIQUE_PROTOCOL_VALUE_REQUIRED",
+      "blocks_validation_training": true,
       "blocks_formal_training": true
     },
     {
@@ -110,6 +138,10 @@
       "implementation_state": "ASSUMED",
       "source": "当前 LeggedGym-derived Stage1 配置",
       "notes": "PACE v2 使用 q0 符号但未在论文中列出 ANYmal 的完整数值。",
+      "blocker_class": "SEMANTIC",
+      "resolution_priority": 1,
+      "resolution_policy": "UNIQUE_PROTOCOL_VALUE_REQUIRED",
+      "blocks_validation_training": true,
       "blocks_formal_training": true
     },
     {
@@ -166,6 +198,10 @@
       "current_value": "lin_vel*2, ang_vel*0.25, command=(2,2,0.25), qdot*0.05 等",
       "implementation_state": "ASSUMED",
       "source": "LeggedGym-derived Stage1 configuration",
+      "blocker_class": "SEMANTIC",
+      "resolution_priority": 3,
+      "resolution_policy": "UNIQUE_PROTOCOL_VALUE_REQUIRED",
+      "blocks_validation_training": true,
       "blocks_formal_training": true
     },
     {
@@ -176,6 +212,10 @@
       "current_value": "actor/critic 独立 running moments 与 checkpoint 元数据校验已实现；历史 observation pipeline 未启用",
       "implementation_state": "READY_DISABLED",
       "source": "PACE v2 Appendix Table 8",
+      "blocker_class": "SEMANTIC",
+      "resolution_priority": 3,
+      "resolution_policy": "UNIQUE_PROTOCOL_VALUE_REQUIRED",
+      "blocks_validation_training": true,
       "blocks_formal_training": true
     },
     {
@@ -186,6 +226,10 @@
       "current_value": "fixed component scaling only",
       "implementation_state": "ASSUMED",
       "notes": "论文没有说明 empirical running normalization 是作用于 raw observation，还是作用于 fixed-scaled observation。",
+      "blocker_class": "SEMANTIC",
+      "resolution_priority": 3,
+      "resolution_policy": "UNIQUE_PROTOCOL_VALUE_REQUIRED",
+      "blocks_validation_training": true,
       "blocks_formal_training": true
     },
     {
@@ -205,6 +249,10 @@
       "current_value": 0.25,
       "implementation_state": "ASSUMED",
       "notes": "PACE v2 给出 sigma_v 符号，但未在正文或 Table 3/8 中列出数值。",
+      "blocker_class": "SEMANTIC",
+      "resolution_priority": 3,
+      "resolution_policy": "PREREGISTERED_REPRODUCTION_CHOICE",
+      "blocks_validation_training": true,
       "blocks_formal_training": true
     },
     {
@@ -254,6 +302,10 @@
       "implementation_state": "ASSUMED",
       "source": "LeggedGym reward aggregation semantics",
       "notes": "PACE v2 未明确说明是否在逐步总 reward 上执行非负裁剪。",
+      "blocker_class": "SEMANTIC",
+      "resolution_priority": 3,
+      "resolution_policy": "PREREGISTERED_REPRODUCTION_CHOICE",
+      "blocks_validation_training": true,
       "blocks_formal_training": true
     },
     {
@@ -265,6 +317,10 @@
       "implementation_state": "ASSUMED",
       "source": "LeggedGym reward preparation semantics",
       "notes": "PACE v2 给出 reward 公式和权重，但未明确说明实现中是否再乘 policy_dt。",
+      "blocker_class": "SEMANTIC",
+      "resolution_priority": 3,
+      "resolution_policy": "PREREGISTERED_REPRODUCTION_CHOICE",
+      "blocks_validation_training": true,
       "blocks_formal_training": true
     },
     {
@@ -315,6 +371,10 @@
       "implementation_state": "MISSING",
       "source": "PACE v2 Eq. (22) defines eta but Table 8 does not provide its value",
       "selection_rule": "不得按 locomotion performance 选择；若来源仍不可得，只允许预注册的 sensitivity experiment。",
+      "blocker_class": "REPRODUCIBILITY",
+      "resolution_priority": 4,
+      "resolution_policy": "PREREGISTERED_WITH_SENSITIVITY",
+      "blocks_validation_training": false,
       "blocks_formal_training": true
     },
     {

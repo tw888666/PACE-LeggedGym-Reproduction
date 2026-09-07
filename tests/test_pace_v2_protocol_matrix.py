@@ -16,6 +16,7 @@ class PaceV2ProtocolMatrixTest(unittest.TestCase):
         self.assertEqual(
             self.matrix["schema"], "pace_v2_protocol_provenance_matrix.v1"
         )
+        self.assertFalse(self.matrix["baseline"]["validation_training_allowed"])
         self.assertFalse(self.matrix["baseline"]["formal_training_allowed"])
 
     def test_matrix_ids_and_classifications_are_valid(self):
@@ -42,6 +43,28 @@ class PaceV2ProtocolMatrixTest(unittest.TestCase):
     def test_required_provenance_classes_are_represented(self):
         represented = {entry["provenance"] for entry in self.matrix["matrix"]}
         self.assertEqual(represented, set(self.matrix["provenance_classes"]))
+
+    def test_formal_blockers_have_impact_class_and_validation_semantics(self):
+        blockers = [
+            entry
+            for entry in self.matrix["matrix"]
+            if entry.get("blocks_formal_training") is True
+        ]
+        classes = {name: [] for name in self.matrix["blocker_classes"]}
+        for entry in blockers:
+            classes[entry["blocker_class"]].append(entry["id"])
+            self.assertIn(entry["resolution_priority"], (1, 2, 3, 4))
+            self.assertIn(
+                entry["resolution_policy"], self.matrix["resolution_policies"]
+            )
+            self.assertEqual(
+                entry["blocks_validation_training"],
+                entry["blocker_class"] == "SEMANTIC",
+            )
+
+        self.assertEqual(len(classes["SEMANTIC"]), 11)
+        self.assertEqual(classes["REPRODUCIBILITY"], ["ppo.entropy_slope_eta"])
+        self.assertEqual(classes["FORMAL_REPORTING"], [])
 
 
 if __name__ == "__main__":
