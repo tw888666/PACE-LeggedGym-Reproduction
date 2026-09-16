@@ -599,12 +599,8 @@ class Stage1LocomotionEnv:
         self.training_iteration = int(iteration)
         self._iteration_override = int(iteration)
 
-    def step(self, actions: torch.Tensor):
-        if tuple(actions.shape) != (self.num_envs, self.num_actions):
-            raise ValueError(f"actions must have shape {(self.num_envs, self.num_actions)}")
-        self.actions = torch.clamp(
-            actions.to(self.device), -self.cfg.action.clip, self.cfg.action.clip
-        )
+    def _compute_policy_target(self) -> torch.Tensor:
+        """Historical target selection; PACE v2 overrides this hook separately."""
         target_pipeline = compute_policy_target_pipeline(
             self.actions,
             self.default_dof_pos,
@@ -613,12 +609,22 @@ class Stage1LocomotionEnv:
             self.cfg,
             self.target_adapter,
         )
+        return target_pipeline.selected_target
+
+    def _step_actuator(self, target: torch.Tensor):
+        return self.actuator.step(target, self.dof_pos, self.dof_vel)
+
+    def step(self, actions: torch.Tensor):
+        if tuple(actions.shape) != (self.num_envs, self.num_actions):
+            raise ValueError(f"actions must have shape {(self.num_envs, self.num_actions)}")
+        self.actions = torch.clamp(
+            actions.to(self.device), -self.cfg.action.clip, self.cfg.action.clip
+        )
+        policy_target = self._compute_policy_target()
         torque_saturation_ratio = torch.zeros(self.num_envs, device=self.device)
         mean_torque_utilization = torch.zeros(self.num_envs, device=self.device)
         for _ in range(self.cfg.action.policy_decimation):
-            actuator_step = self.actuator.step(
-                target_pipeline.selected_target, self.dof_pos, self.dof_vel
-            )
+            actuator_step = self._step_actuator(policy_target)
             actuator_metrics = compute_actuator_logging_metrics(
                 actuator_step.raw_pd_torque,
                 actuator_step.saturated_torque,

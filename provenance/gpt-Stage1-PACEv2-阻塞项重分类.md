@@ -4,10 +4,10 @@
 
 ## 结论
 
-当前 12 个 formal blocker（正式训练阻塞项）按其首要影响分类如下：
+原始 12 个 formal blocker（正式训练阻塞项）中，动作、公式（9）接线/带宽及观测归一化决议已解决八个子项，奖励语义决议又解决三个，当前剩余 1 项分类如下：
 
 ```text
-semantic_blockers              = 11
+semantic_blockers              = 0
 reproducibility_blockers       = 1
 formal_reporting_blockers      = 0
 validation_training_allowed    = false
@@ -37,7 +37,25 @@ PACE_V2_FORMAL 正式训练
 当前只允许纯函数、配置和 checkpoint（检查点）保存恢复测试，不允许任何
 `PACE_V2_VALIDATION` 训练，更不允许 30,000 iterations（迭代）的正式训练。
 
-## 12 项重分类和处理顺序
+## 奖励项后续解决
+
+[奖励语义预注册 v1](gpt-Stage1-PACEv2-奖励语义预注册-v1.md)及组件验证已完成。
+当前登记的语义项清零，只剩 `ppo.entropy_slope_eta`。短程验证仍须单独确定斜率和完整入口，
+门禁不自动开放。下文保留各次重分类的历史说明。
+
+## 观测项后续拆分
+
+[观测归一化只读审计](gpt-Stage1-PACEv2-观测归一化只读审计.md)将当前观测阻塞项
+明确分为 `observation.component_scaling`、`observation.noise_and_scaling_order` 和
+`observation.empirical_normalization_semantics`。下表保留初始分类；当前标识以矩阵为准。
+随后[归一化预注册及实现](gpt-Stage1-PACEv2-观测归一化重建预注册-v1.md)已解决这三个观测项。
+当前仅剩奖励侧 3 个语义项及熵斜率 1 个可复现性项，门禁继续关闭。
+
+## 原始 12 项重分类及当前处理状态
+
+优先级 1 的三项现已由[动作预注册决议 v1](gpt-Stage1-PACEv2-动作重建预注册决议-v1.md)
+解决，状态均为 `RESOLVED_BY_PREREGISTERED_ASSUMPTION`，不再阻塞训练。优先级 2 的接线与 5° 带宽也已由
+[公式（9）决议](gpt-Stage1-PACEv2-公式9接线与软带宽预注册-v1.md)解决；观测三个项也已解决；其余 4 项继续阻塞。
 
 | 优先级 | blocker | 首要分类 | 为什么会阻塞 | 允许的解决方式 |
 |---:|---|---|---|---|
@@ -70,7 +88,7 @@ target_mapping:
     q_target = q0 + a_t
 ```
 
-当前未决的不是“位置控制还是力矩控制”，而是以下实现层组合的完整数值语义：
+动作预注册前未决的不是“位置控制还是力矩控制”，而是以下实现层组合的完整数值语义：
 
 ```text
 raw policy output
@@ -81,7 +99,7 @@ raw policy output
     -> PD controller
 ```
 
-因此优先级 1 的三个子项没有冻结前，不应决定 Eq. (9) 的最终接线配置。
+优先级 1 的三个子项现已预注册；Eq. (9) 的最终接线和 5° 带宽也已登记并接入独立验证路径。
 
 ## 公开 pace-sim2real 配置的证据边界
 
@@ -102,12 +120,9 @@ locomotion policy 的完整训练环境。因此它只能证明该公开 SysID �
 
 ## 下一步审计顺序
 
-1. 对照 PACE 作者 locomotion 实现、补充材料和固定 LeggedGym commit，只追溯两个问题：
-   ANYmal 的 12 维 `q0`；network raw output 到论文 `a_t [rad]` 的 scale/clip/tanh 等映射。
-   找不到精确来源时，形成一次性预注册选择，不做 locomotion 调参。
-2. 冻结 Eq. (9) 接线位置，并把 `5°` 或其他论文范围内取值登记为预注册复现选择。
-3. 唯一确定 observation normalization（观测归一化）的组合顺序及训练/推理/checkpoint
-   语义。
-4. 在 validation 前同时冻结三个 reward 语义项；它们不能留到“报告阶段”。
+1. 动作重建预注册已完成；保留作者回复渠道，按决议的启动前覆盖、启动后版本分离规则处理新证据。
+2. Eq. (9) 接线与 5° 带宽已解决；历史路径保持不变。
+3. 观测归一化组合及训练/推理/恢复语义已预注册并实现，组件和跨进程恢复验证通过。
+4. 三个奖励语义项已预注册并通过组件验证；当前登记语义项清零。
 5. 语义项清零后才显式打开短程 validation；`eta` 可用预注册诊断值做敏感性测试，
    但在正式来源或正式假设冻结前，formal gate（正式门禁）继续关闭。

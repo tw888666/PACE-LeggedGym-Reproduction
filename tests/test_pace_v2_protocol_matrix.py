@@ -16,8 +16,8 @@ class PaceV2ProtocolMatrixTest(unittest.TestCase):
         self.assertEqual(
             self.matrix["schema"], "pace_v2_protocol_provenance_matrix.v1"
         )
-        self.assertFalse(self.matrix["baseline"]["validation_training_allowed"])
-        self.assertFalse(self.matrix["baseline"]["formal_training_allowed"])
+        self.assertTrue(self.matrix["baseline"]["validation_training_allowed"])
+        self.assertTrue(self.matrix["baseline"]["formal_training_allowed"])
 
     def test_matrix_ids_and_classifications_are_valid(self):
         entries = self.matrix["matrix"]
@@ -36,7 +36,7 @@ class PaceV2ProtocolMatrixTest(unittest.TestCase):
         immediate_scope = set(
             self.matrix["paper_exact_infrastructure_ready"]
         )
-        self.assertTrue(blockers)
+        self.assertEqual(blockers, set())
         self.assertLessEqual(blockers, entry_ids)
         self.assertLessEqual(immediate_scope, entry_ids)
 
@@ -62,8 +62,8 @@ class PaceV2ProtocolMatrixTest(unittest.TestCase):
                 entry["blocker_class"] == "SEMANTIC",
             )
 
-        self.assertEqual(len(classes["SEMANTIC"]), 11)
-        self.assertEqual(classes["REPRODUCIBILITY"], ["ppo.entropy_slope_eta"])
+        self.assertEqual(len(classes["SEMANTIC"]), 0)
+        self.assertEqual(classes["REPRODUCIBILITY"], [])
         self.assertEqual(classes["FORMAL_REPORTING"], [])
 
     def test_action_physical_semantics_are_separate_from_network_mapping(self):
@@ -81,9 +81,11 @@ class PaceV2ProtocolMatrixTest(unittest.TestCase):
             "control.action_output_clipping",
             "control.default_posture_q0",
         ):
-            self.assertEqual(entries[entry_id]["provenance"], "UNRESOLVED")
-            self.assertTrue(entries[entry_id]["blocks_validation_training"])
-            self.assertTrue(entries[entry_id]["blocks_formal_training"])
+            self.assertEqual(entries[entry_id]["provenance"], "LEGGEDGYM_DERIVED_REPRODUCTION_ASSUMPTION")
+            self.assertFalse(entries[entry_id]["paper_exact"])
+            self.assertEqual(entries[entry_id]["resolution_status"], "RESOLVED_BY_PREREGISTERED_ASSUMPTION")
+            self.assertFalse(entries[entry_id]["blocks_validation_training"])
+            self.assertFalse(entries[entry_id]["blocks_formal_training"])
 
     def test_public_sysid_action_config_is_not_locomotion_evidence(self):
         entry = next(
@@ -95,31 +97,33 @@ class PaceV2ProtocolMatrixTest(unittest.TestCase):
         self.assertFalse(entry["evidence_scope"]["locomotion_evidence"])
         self.assertNotIn("blocks_formal_training", entry)
 
-    def test_action_evidence_audit_preserves_unresolved_status_and_gates(self):
+    def test_action_preregistration_preserves_evidence_gap_after_formal_approval(self):
         audit = self.matrix["action_evidence_audit"]
         self.assertEqual(
             audit["status"],
             "SEARCHED_NO_AUTHORITATIVE_LOCOMOTION_VALUE_FOUND",
         )
         self.assertEqual(audit["gate_effect"], "NONE")
-        self.assertFalse(self.matrix["baseline"]["validation_training_allowed"])
-        self.assertFalse(self.matrix["baseline"]["formal_training_allowed"])
+        self.assertTrue(self.matrix["baseline"]["validation_training_allowed"])
+        self.assertTrue(self.matrix["baseline"]["formal_training_allowed"])
 
         entries = {entry["id"]: entry for entry in self.matrix["matrix"]}
-        self.assertEqual(set(audit["still_unresolved"]), {
+        self.assertEqual(set(audit["authoritative_values_still_unavailable"]), {
             "control.network_output_to_action_offset_mapping",
             "control.action_output_clipping",
             "control.default_posture_q0",
         })
-        for entry_id in audit["still_unresolved"]:
-            self.assertEqual(entries[entry_id]["provenance"], "UNRESOLVED")
+        for entry_id in audit["authoritative_values_still_unavailable"]:
+            self.assertEqual(entries[entry_id]["provenance"], "LEGGEDGYM_DERIVED_REPRODUCTION_ASSUMPTION")
+            self.assertFalse(entries[entry_id]["paper_exact"])
+            self.assertEqual(entries[entry_id]["resolution_status"], "RESOLVED_BY_PREREGISTERED_ASSUMPTION")
             self.assertEqual(
                 entries[entry_id]["evidence_audit_status"],
                 audit["status"],
             )
-            self.assertIn(entry_id, self.matrix["formal_freeze_blockers"])
+            self.assertNotIn(entry_id, self.matrix["formal_freeze_blockers"])
 
-        self.assertEqual(len(self.matrix["formal_freeze_blockers"]), 12)
+        self.assertEqual(len(self.matrix["formal_freeze_blockers"]), 0)
 
 
 if __name__ == "__main__":

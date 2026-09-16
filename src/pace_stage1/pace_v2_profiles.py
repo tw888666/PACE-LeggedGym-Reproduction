@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import math
 from dataclasses import dataclass, field
 from enum import Enum
 from pathlib import Path
@@ -25,7 +26,7 @@ class PaceV2EntropyConfig:
     initial: float = 2.0e-3
     final: float = 5.0e-4
     turnover_iteration: int = 20_000
-    slope_eta: Optional[float] = None
+    slope_eta: Optional[float] = math.atanh(0.8) / 10_000
 
 
 @dataclass(frozen=True)

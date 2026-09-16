@@ -7,10 +7,10 @@
     "branch": "codex/stage1-pace-v2-spec",
     "parent_commit": "80d637dbd7f1729dca6e6b16b59483cb8f4d478d",
     "parent_classification": "LeggedGym-derived PACE energy-off reconstruction with diagnostics",
-    "validation_training_allowed": false,
-    "validation_reason": "仍有会改变 MDP 或 policy semantics 的 semantic blockers；只允许纯函数和组件级测试。",
-    "formal_training_allowed": false,
-    "formal_reason": "协议仍包含阻塞正式训练的未决项；本文件只冻结来源审计，不冻结最终训练配置。"
+    "validation_training_allowed": true,
+    "validation_reason": "用户明确授权：eta 几何预注册及静态/恢复测试通过；只允许 V0 集成冒烟，通过后 V1 300 次短程验证。",
+    "formal_training_allowed": true,
+    "formal_reason": "2026-09-08 用户明确批准：seed0、4096 混合地形、30000 次 Stage1 Task-only；只监测不调参。"
   },
   "authoritative_sources": {
     "pace_v2": {
@@ -58,12 +58,13 @@
       "control.action_physical_semantics",
       "control.target_mapping"
     ],
-    "still_unresolved": [
+    "gate_effect": "NONE",
+    "authoritative_values_still_unavailable": [
       "control.network_output_to_action_offset_mapping",
       "control.action_output_clipping",
       "control.default_posture_q0"
     ],
-    "gate_effect": "NONE"
+    "subsequent_decision": "provenance/gpt-Stage1-PACEv2-动作重建预注册决议-v1.md"
   },
   "provenance_classes": {
     "PAPER_EXACT": "PACE v2 明确给出离散值、公式或布尔语义。",
@@ -71,7 +72,10 @@
     "PUBLIC_CODE_CONTEXT_ONLY": "公开代码中的值和语义可精确核验，但该代码路径不属于论文 locomotion policy，不能跨场景外推。",
     "LEGGEDGYM_ASSUMPTION": "当前值继承自指定 LeggedGym，但 PACE v2 未确认。",
     "UNRESOLVED": "PACE v2 和当前可用上游实现均不足以确定该值或组合语义。",
-    "PROJECT_ABLATION": "由本项目为隔离实验变量主动定义，不属于 PACE 原论文设置。"
+    "PROJECT_ABLATION": "由本项目为隔离实验变量主动定义，不属于 PACE 原论文设置。",
+    "LEGGEDGYM_DERIVED_REPRODUCTION_ASSUMPTION": "沿用固定 LeggedGym 基础框架派生的当前 ANYmal-D 路径，预注册为复现假设；不是 PACE 论文精确值或作者确认值。",
+    "OFFICIAL_ARTIFACT_COMPATIBILITY_REPRODUCTION_ASSUMPTION": "根据 PACE 官方公开制品兼容依赖选择固定上游实现并移植；不是论文运动训练版本确认，不依据性能选择。",
+    "PAPER_DERIVED_REPRODUCTION_ASSUMPTION": "按论文公式选择实现层解释；公式本身明确，但实现开关未直接公开，不冒充作者确认。"
   },
   "implementation_states": {
     "MATCH": "当前实现与论文明确规范一致。",
@@ -119,14 +123,18 @@
       "group": "control",
       "provenance": "PAPER_EXACT",
       "paper_value": "在真实关节位于 soft-limit 区且 target 指向 feasible set 外时，按 Eq. (9) 重塑 target；不约束 policy action space",
-      "current_value": "独立纯函数已实现并测试；历史 target pipeline 未启用",
-      "implementation_state": "READY_DISABLED",
+      "current_value": "PACE_V2_VALIDATION 独立控制路径：q0+a_t -> Eq.(9; q_true) -> PACEActuatorCore -> PD -> torque/velocity envelope -> delay FIFO -> physics",
+      "implementation_state": "MATCH",
       "source": "PACE v2 Sec. 2.3.2, Eq. (9)",
       "blocker_class": "SEMANTIC",
       "resolution_priority": 2,
       "resolution_policy": "UNIQUE_PROTOCOL_VALUE_REQUIRED",
-      "blocks_validation_training": true,
-      "blocks_formal_training": true
+      "blocks_validation_training": false,
+      "blocks_formal_training": false,
+      "decision": "provenance/gpt-Stage1-PACEv2-公式9接线与软带宽预注册-v1.md",
+      "resolution_status": "RESOLVED",
+      "paper_exact": true,
+      "notes": "PAPER_EXACT 仅指公式和目标构造后、执行器前的接线位置。使用真实关节状态，偏置随后进入 PD；历史 adapter 和默认行为保持原状。每物理子步重算是项目离散实现选择，不声称论文公开了执行频率。"
     },
     {
       "id": "control.soft_limit_band_deg",
@@ -137,87 +145,160 @@
       "unit": "degree",
       "implementation_state": "ASSUMED",
       "source": "PACE v2 Sec. 2.3.2, Clarification of joint-limit saturation",
-      "notes": "当前值处于论文范围内，但 ANYmal 的精确训练值未公开。",
+      "notes": "选择论文典型范围上端点且当前重建配置已有的 5°；不依据运动表现选择，不扫描带宽选择主基线，必要的敏感性分析单独报告。Stage1/2/3 共用；适用动作决议 v1 的作者覆盖规则。",
       "blocker_class": "SEMANTIC",
       "resolution_priority": 2,
       "resolution_policy": "PREREGISTERED_REPRODUCTION_CHOICE",
-      "blocks_validation_training": true,
-      "blocks_formal_training": true
+      "blocks_validation_training": false,
+      "blocks_formal_training": false,
+      "decision": "provenance/gpt-Stage1-PACEv2-公式9接线与软带宽预注册-v1.md",
+      "resolution_status": "RESOLVED_BY_PREREGISTERED_PAPER_RANGE_CHOICE",
+      "paper_exact": false,
+      "paper_range_deg": [
+        2.0,
+        5.0
+      ],
+      "chosen_value_deg": 5.0
     },
     {
       "id": "control.network_output_to_action_offset_mapping",
       "group": "control",
-      "provenance": "UNRESOLVED",
+      "provenance": "LEGGEDGYM_DERIVED_REPRODUCTION_ASSUMPTION",
       "paper_value": "a_t=pi(o_t^prop)，a_t 是 rad 单位的物理关节位置偏移；未公开 network raw output 到 a_t 的额外 transform",
-      "current_value": {"mapping": "a_t=0.5*network_output", "scale": 0.5, "possible_additional_transform": "unresolved"},
+      "current_value": {
+        "mapping": "a_t=0.5*clip(raw_policy_sample,-100,100)",
+        "scale": 0.5,
+        "additional_transform": "none"
+      },
       "unit": "rad per network output unit",
       "implementation_state": "ASSUMED",
       "source": "LeggedGym 8fa29acc base action_scale",
-      "notes": "0.5 不与 Eq. (8) 自动矛盾，但只是 LeggedGym-derived 实现参数，不能标成 PACE locomotion 已确认值。",
+      "notes": "主复现假设采用原始高斯采样先裁剪再乘 0.5 rad，不增加 tanh；不依据旧失败或敏感性实验反选映射。",
       "evidence_audit_status": "SEARCHED_NO_AUTHORITATIVE_LOCOMOTION_VALUE_FOUND",
-      "audited_transform_components": ["Gaussian sample", "tanh", "multiplicative scale", "clip", "other transform"],
+      "audited_transform_components": [
+        "Gaussian sample",
+        "tanh",
+        "multiplicative scale",
+        "clip",
+        "other transform"
+      ],
       "blocker_class": "SEMANTIC",
       "resolution_priority": 1,
-      "resolution_policy": "UNIQUE_PROTOCOL_VALUE_REQUIRED",
-      "blocks_validation_training": true,
-      "blocks_formal_training": true
+      "resolution_policy": "PREREGISTERED_REPRODUCTION_CHOICE",
+      "blocks_validation_training": false,
+      "blocks_formal_training": false,
+      "paper_exact": false,
+      "resolution_status": "RESOLVED_BY_PREREGISTERED_ASSUMPTION",
+      "decision": "provenance/gpt-Stage1-PACEv2-动作重建预注册决议-v1.md",
+      "pace_locomotion_confirmation": "unavailable"
     },
     {
       "id": "control.action_output_clipping",
       "group": "control",
-      "provenance": "UNRESOLVED",
+      "provenance": "LEGGEDGYM_DERIVED_REPRODUCTION_ASSUMPTION",
       "paper_value": "Eq. (9) 不约束 policy action space；论文未公开 environment-side action clipping 数值",
-      "current_value": [-100.0, 100.0],
+      "current_value": [
+        -100.0,
+        100.0
+      ],
       "implementation_state": "ASSUMED",
       "source": "LeggedGym 8fa29acc normalization.clip_actions",
-      "notes": "当前 ±100 只能描述历史 LeggedGym-derived 路径，不能由 Eq. (9) 推导，也不能改成 ±1 作为论文结论。",
+      "notes": "±100 预注册为主复现假设；不是从 Eq. (9) 推导。±1 仅保留为诊断/敏感性证据。",
       "evidence_audit_status": "SEARCHED_NO_AUTHORITATIVE_LOCOMOTION_VALUE_FOUND",
       "blocker_class": "SEMANTIC",
       "resolution_priority": 1,
-      "resolution_policy": "UNIQUE_PROTOCOL_VALUE_REQUIRED",
-      "blocks_validation_training": true,
-      "blocks_formal_training": true
+      "resolution_policy": "PREREGISTERED_REPRODUCTION_CHOICE",
+      "blocks_validation_training": false,
+      "blocks_formal_training": false,
+      "paper_exact": false,
+      "resolution_status": "RESOLVED_BY_PREREGISTERED_ASSUMPTION",
+      "decision": "provenance/gpt-Stage1-PACEv2-动作重建预注册决议-v1.md",
+      "pace_locomotion_confirmation": "unavailable"
     },
     {
       "id": "control.default_posture_q0",
       "group": "control",
-      "provenance": "UNRESOLVED",
+      "provenance": "LEGGEDGYM_DERIVED_REPRODUCTION_ASSUMPTION",
       "paper_value": "论文定义 q0 为 default posture，但未公开 ANYmal 的 12 维数值",
-      "current_value": [0.0, 0.4, -0.8, 0.0, 0.4, -0.8, 0.0, -0.4, 0.8, 0.0, -0.4, 0.8],
+      "current_value": [
+        0.0,
+        0.4,
+        -0.8,
+        0.0,
+        0.4,
+        -0.8,
+        0.0,
+        -0.4,
+        0.8,
+        0.0,
+        -0.4,
+        0.8
+      ],
       "unit": "rad",
       "implementation_state": "ASSUMED",
       "source": "当前 LeggedGym-derived Stage1 配置",
-      "notes": "PACE v2 使用 q0 符号但未在论文中列出 ANYmal 的完整数值。",
+      "notes": "沿用当前固定基础框架派生的 ANYmal-D 默认姿态；不是 PACE 数值确认，也不宣称是上游独立 ANYmal-D 官方配置。",
       "evidence_audit_status": "SEARCHED_NO_AUTHORITATIVE_LOCOMOTION_VALUE_FOUND",
-      "excluded_substitutes": [
+      "blocker_class": "SEMANTIC",
+      "resolution_priority": 1,
+      "resolution_policy": "PREREGISTERED_REPRODUCTION_CHOICE",
+      "blocks_validation_training": false,
+      "blocks_formal_training": false,
+      "paper_exact": false,
+      "resolution_status": "RESOLVED_BY_PREREGISTERED_ASSUMPTION",
+      "decision": "provenance/gpt-Stage1-PACEv2-动作重建预注册决议-v1.md",
+      "pace_locomotion_confirmation": "unavailable",
+      "excluded_as_paper_exact_evidence": [
         "URDF zero configuration",
         "LeggedGym default ANYmal posture",
         "pace-sim2real SysID initial or trajectory-bias posture",
         "current Stage1 LeggedGym-derived [0, +/-0.4, +/-0.8] posture"
       ],
-      "blocker_class": "SEMANTIC",
-      "resolution_priority": 1,
-      "resolution_policy": "UNIQUE_PROTOCOL_VALUE_REQUIRED",
-      "blocks_validation_training": true,
-      "blocks_formal_training": true
+      "joint_order": [
+        "LF_HAA",
+        "LF_HFE",
+        "LF_KFE",
+        "RF_HAA",
+        "RF_HFE",
+        "RF_KFE",
+        "LH_HAA",
+        "LH_HFE",
+        "LH_KFE",
+        "RH_HAA",
+        "RH_HFE",
+        "RH_KFE"
+      ]
     },
     {
       "id": "control.public_pace_sim2real_action_cfg_scope",
       "group": "control",
       "provenance": "PUBLIC_CODE_CONTEXT_ONLY",
       "paper_value": null,
-      "current_value": {"scale": 1.0, "use_default_offset": false, "action_semantics": "absolute joint position targets"},
+      "current_value": {
+        "scale": 1.0,
+        "use_default_offset": false,
+        "action_semantics": "absolute joint position targets"
+      },
       "implementation_state": "NOT_APPLICABLE",
       "source": "https://github.com/leggedrobotics/pace-sim2real/blob/f07259c09b517ab5118bb1d01b0a6078cf8e1c31/source/pace_sim2real/pace_sim2real/tasks/manager_based/pace/pace_sim2real_env_cfg.py#L59-L63",
-      "evidence_scope": {"relevance": "system-identification/data-collection path", "locomotion_evidence": false},
+      "evidence_scope": {
+        "relevance": "system-identification/data-collection path",
+        "locomotion_evidence": false
+      },
       "notes": "该公开配置精确说明 SysID 环境使用 absolute target；历史审计表明该配置由 SysID 路径引入，当前公开历史未出现论文 locomotion 环境或 policy artifact，不能作为 PACE locomotion action_scale=1.0 的证据。"
     },
     {
       "id": "control.anymal_pd_gains",
       "group": "control",
       "provenance": "PAPER_EXACT",
-      "paper_value": {"kp": 85.0, "kd": 0.6},
-      "current_value": {"kp": 85.0, "kd": 0.6},
+      "paper_value": {
+        "kp": 85.0,
+        "kd": 0.6
+      },
+      "current_value": {
+        "kp": 85.0,
+        "kd": 0.6
+      },
       "implementation_state": "MATCH",
       "source": "PACE v2 Table 3"
     },
@@ -251,84 +332,131 @@
     {
       "id": "observation.noise_distribution_and_magnitude",
       "group": "observation",
-      "provenance": "LEGGEDGYM_ASSUMPTION",
+      "provenance": "LEGGEDGYM_DERIVED_REPRODUCTION_ASSUMPTION",
       "paper_value": null,
       "current_value": "component-wise uniform noise after fixed scaling",
       "implementation_state": "ASSUMED",
       "source": "LeggedGym-derived Stage1 configuration",
-      "notes": "PACE v2 只说明 i.i.d. noise 的施加对象，未列分布和逐分量幅值。"
+      "notes": "PACE v2 只说明 i.i.d. noise 的施加对象，未列分布和逐分量幅值。",
+      "tracked_by": "observation.noise_and_scaling_order",
+      "paper_exact": false,
+      "decision": "provenance/gpt-Stage1-PACEv2-观测归一化重建预注册-v1.md",
+      "resolution_status": "RESOLVED_BY_PREREGISTERED_ASSUMPTION"
     },
     {
-      "id": "observation.fixed_component_scales",
+      "id": "observation.component_scaling",
       "group": "observation",
-      "provenance": "LEGGEDGYM_ASSUMPTION",
+      "provenance": "LEGGEDGYM_DERIVED_REPRODUCTION_ASSUMPTION",
       "paper_value": null,
       "current_value": "lin_vel*2, ang_vel*0.25, command=(2,2,0.25), qdot*0.05 等",
       "implementation_state": "ASSUMED",
       "source": "LeggedGym-derived Stage1 configuration",
       "blocker_class": "SEMANTIC",
       "resolution_priority": 3,
-      "resolution_policy": "UNIQUE_PROTOCOL_VALUE_REQUIRED",
-      "blocks_validation_training": true,
-      "blocks_formal_training": true
+      "resolution_policy": "PREREGISTERED_REPRODUCTION_CHOICE",
+      "blocks_validation_training": false,
+      "blocks_formal_training": false,
+      "paper_exact": false,
+      "semantic_question": "observation_component_scaling",
+      "notes": "预注册保留当前固定尺度；来源是 LeggedGym 派生假设，与噪声和环境裁剪组合已明确，不按性能选值。",
+      "audit_report": "provenance/gpt-Stage1-PACEv2-观测归一化只读审计.md",
+      "resolution_status": "RESOLVED_BY_PREREGISTERED_ASSUMPTION",
+      "decision": "provenance/gpt-Stage1-PACEv2-观测归一化重建预注册-v1.md"
     },
     {
       "id": "observation.empirical_normalization",
       "group": "observation",
       "provenance": "PAPER_EXACT",
       "paper_value": true,
-      "current_value": "actor/critic 独立 running moments 与 checkpoint 元数据校验已实现；历史 observation pipeline 未启用",
-      "implementation_state": "READY_DISABLED",
+      "current_value": "独立验证 runner 已接入预注册经验归一化兼容层；历史默认入口不启用",
+      "implementation_state": "MATCH",
+      "source": "PACE v2 Appendix Table 8",
+      "notes": "PAPER_EXACT 只确认 Table 8 的 True；实际组合和引擎语义由独立阻塞项跟踪。组件就绪不等于 PACE 精确实现。",
+      "semantic_blocker": "observation.empirical_normalization_semantics"
+    },
+    {
+      "id": "observation.empirical_normalization_semantics",
+      "group": "observation",
+      "provenance": "OFFICIAL_ARTIFACT_COMPATIBILITY_REPRODUCTION_ASSUMPTION",
+      "paper_value": null,
+      "current_value": "官方 rsl_rl 3.0.1 模块算术 std+0.01、无输出裁剪、until=None；独立 actor/critic；更新与前向分离；v1.0.2 PPO 前插入兼容层，网络缓存环境张量。",
+      "implementation_state": "MATCH",
       "source": "PACE v2 Appendix Table 8",
       "blocker_class": "SEMANTIC",
       "resolution_priority": 3,
-      "resolution_policy": "UNIQUE_PROTOCOL_VALUE_REQUIRED",
-      "blocks_validation_training": true,
-      "blocks_formal_training": true
+      "resolution_policy": "PREREGISTERED_REPRODUCTION_CHOICE",
+      "blocks_validation_training": false,
+      "blocks_formal_training": false,
+      "semantic_question": "empirical_normalization_semantics",
+      "notes": "MATCH 针对预注册兼容规范；首次观测先更新是明确的项目启动选择，不宣称逐事件复制上游 runner。跨进程恢复闭合已验证。",
+      "audit_report": "provenance/gpt-Stage1-PACEv2-观测归一化只读审计.md",
+      "resolution_status": "RESOLVED_BY_PREREGISTERED_ASSUMPTION",
+      "paper_exact": false,
+      "decision": "provenance/gpt-Stage1-PACEv2-观测归一化重建预注册-v1.md"
     },
     {
-      "id": "observation.fixed_scale_plus_empirical_normalization_composition",
+      "id": "observation.noise_and_scaling_order",
       "group": "observation",
-      "provenance": "UNRESOLVED",
+      "provenance": "LEGGEDGYM_DERIVED_REPRODUCTION_ASSUMPTION",
       "paper_value": null,
-      "current_value": "fixed component scaling only",
+      "current_value": "actor: fixed scales -> scaled-unit uniform noise -> environment clip ±100 -> independent empirical normalization; critic: noise-free scaled proprioception + privileged fields -> environment clip -> independent empirical normalization",
       "implementation_state": "ASSUMED",
-      "notes": "论文没有说明 empirical running normalization 是作用于 raw observation，还是作用于 fixed-scaled observation。",
+      "notes": "噪声对象由论文确定，分布/幅值/顺序及裁剪为复现假设；qdot 缩放后半幅 0.075，不再额外乘 0.05。高程米单位裁剪 ±1 后乘 5。",
       "blocker_class": "SEMANTIC",
       "resolution_priority": 3,
-      "resolution_policy": "UNIQUE_PROTOCOL_VALUE_REQUIRED",
-      "blocks_validation_training": true,
-      "blocks_formal_training": true
+      "resolution_policy": "PREREGISTERED_REPRODUCTION_CHOICE",
+      "blocks_validation_training": false,
+      "blocks_formal_training": false,
+      "semantic_question": "observation_noise_and_scaling_order",
+      "audit_report": "provenance/gpt-Stage1-PACEv2-观测归一化只读审计.md",
+      "resolution_status": "RESOLVED_BY_PREREGISTERED_ASSUMPTION",
+      "paper_exact": false,
+      "decision": "provenance/gpt-Stage1-PACEv2-观测归一化重建预注册-v1.md"
     },
     {
       "id": "reward.velocity_tracking",
       "group": "reward",
       "provenance": "PAPER_EXACT",
-      "paper_value": {"definition": "Eq. (10) planar velocity exponential plus yaw-rate exponential", "scale": 0.2},
-      "current_value": {"definition": "相同", "scale": 0.2},
+      "paper_value": {
+        "definition": "Eq. (10) planar velocity exponential plus yaw-rate exponential",
+        "scale": 0.2
+      },
+      "current_value": {
+        "definition": "相同",
+        "scale": 0.2
+      },
       "implementation_state": "MATCH",
       "source": "PACE v2 Eq. (10), Table 3"
     },
     {
       "id": "reward.velocity_tracking_sigma",
       "group": "reward",
-      "provenance": "LEGGEDGYM_ASSUMPTION",
+      "provenance": "LEGGEDGYM_DERIVED_REPRODUCTION_ASSUMPTION",
       "paper_value": null,
       "current_value": 0.25,
       "implementation_state": "ASSUMED",
-      "notes": "PACE v2 给出 sigma_v 符号，但未在正文或 Table 3/8 中列出数值。",
+      "notes": "预注册分母为 0.25（不是再平方），线速度与偏航误差沿用同一数值；不按运动性能选择。",
       "blocker_class": "SEMANTIC",
       "resolution_priority": 3,
       "resolution_policy": "PREREGISTERED_REPRODUCTION_CHOICE",
-      "blocks_validation_training": true,
-      "blocks_formal_training": true
+      "blocks_validation_training": false,
+      "blocks_formal_training": false,
+      "paper_exact": false,
+      "resolution_status": "RESOLVED_BY_PREREGISTERED_ASSUMPTION",
+      "decision": "provenance/gpt-Stage1-PACEv2-奖励语义预注册-v1.md"
     },
     {
       "id": "reward.collision",
       "group": "reward",
       "provenance": "PAPER_EXACT",
-      "paper_value": {"definition": "joint-limit or thigh-environment collision indicator", "scale": -1.0},
-      "current_value": {"definition": "相同事件类别", "scale": -1.0},
+      "paper_value": {
+        "definition": "joint-limit or thigh-environment collision indicator",
+        "scale": -1.0
+      },
+      "current_value": {
+        "definition": "相同事件类别",
+        "scale": -1.0
+      },
       "implementation_state": "MATCH",
       "source": "PACE v2 Eq. (19), Table 3"
     },
@@ -337,7 +465,11 @@
       "group": "reward",
       "provenance": "UNRESOLVED",
       "paper_value": null,
-      "current_value": {"foot_n": 1.0, "collision_n": 0.1, "termination_n": 1.0},
+      "current_value": {
+        "foot_n": 1.0,
+        "collision_n": 0.1,
+        "termination_n": 1.0
+      },
       "unit": "N",
       "implementation_state": "ASSUMED",
       "notes": "论文定义事件语义，但未公开 Isaac Gym 接触力阈值。"
@@ -346,8 +478,16 @@
       "id": "reward.foot_touchdown",
       "group": "reward",
       "provenance": "PAPER_EXACT",
-      "paper_value": {"history_steps": 3, "definition": "touchdown 时取 t-2 到 t 的足端速度范数最大值并对足求和", "scale": -0.1},
-      "current_value": {"history_steps": 3, "definition": "相同", "scale": -0.1},
+      "paper_value": {
+        "history_steps": 3,
+        "definition": "touchdown 时取 t-2 到 t 的足端速度范数最大值并对足求和",
+        "scale": -0.1
+      },
+      "current_value": {
+        "history_steps": 3,
+        "definition": "相同",
+        "scale": -0.1
+      },
       "implementation_state": "MATCH",
       "source": "PACE v2 Eq. (17)-(18), Table 3"
     },
@@ -364,32 +504,41 @@
     {
       "id": "reward.only_positive_aggregation",
       "group": "reward",
-      "provenance": "LEGGEDGYM_ASSUMPTION",
+      "provenance": "PAPER_DERIVED_REPRODUCTION_ASSUMPTION",
       "paper_value": null,
-      "current_value": true,
-      "implementation_state": "ASSUMED",
+      "current_value": {
+        "LEG_GYM_REFERENCE": true,
+        "PACE_V2_VALIDATION": false
+      },
+      "implementation_state": "MATCH",
       "source": "LeggedGym reward aggregation semantics",
-      "notes": "PACE v2 未明确说明是否在逐步总 reward 上执行非负裁剪。",
+      "notes": "公式（20）按带符号加权和解释；新路径关闭附加 max(0,r)，不是声称作者公开了开关。历史默认保持 True。",
       "blocker_class": "SEMANTIC",
       "resolution_priority": 3,
       "resolution_policy": "PREREGISTERED_REPRODUCTION_CHOICE",
-      "blocks_validation_training": true,
-      "blocks_formal_training": true
+      "blocks_validation_training": false,
+      "blocks_formal_training": false,
+      "paper_exact": false,
+      "resolution_status": "RESOLVED_BY_PREREGISTERED_ASSUMPTION",
+      "decision": "provenance/gpt-Stage1-PACEv2-奖励语义预注册-v1.md"
     },
     {
       "id": "reward.scale_by_policy_dt",
       "group": "reward",
-      "provenance": "LEGGEDGYM_ASSUMPTION",
+      "provenance": "LEGGEDGYM_DERIVED_REPRODUCTION_ASSUMPTION",
       "paper_value": null,
       "current_value": true,
       "implementation_state": "ASSUMED",
       "source": "LeggedGym reward preparation semantics",
-      "notes": "PACE v2 给出 reward 公式和权重，但未明确说明实现中是否再乘 policy_dt。",
+      "notes": "所有阶段 1 任务项统一乘策略时间步 0.01 秒；保留固定基础框架离散时间约定，非论文精确声明。",
       "blocker_class": "SEMANTIC",
       "resolution_priority": 3,
       "resolution_policy": "PREREGISTERED_REPRODUCTION_CHOICE",
-      "blocks_validation_training": true,
-      "blocks_formal_training": true
+      "blocks_validation_training": false,
+      "blocks_formal_training": false,
+      "paper_exact": false,
+      "resolution_status": "RESOLVED_BY_PREREGISTERED_ASSUMPTION",
+      "decision": "provenance/gpt-Stage1-PACEv2-奖励语义预注册-v1.md"
     },
     {
       "id": "reward.stage1_energy_term",
@@ -416,7 +565,10 @@
       "group": "ppo",
       "provenance": "PAPER_EXACT",
       "paper_value": 30000,
-      "current_value": {"LEG_GYM_REFERENCE": 3000, "PACE_V2_FORMAL_PROFILE": 30000},
+      "current_value": {
+        "LEG_GYM_REFERENCE": 3000,
+        "PACE_V2_FORMAL_PROFILE": 30000
+      },
       "implementation_state": "READY_DISABLED",
       "source": "PACE v2 Appendix Table 8"
     },
@@ -424,33 +576,70 @@
       "id": "ppo.entropy_endpoints_and_turnover",
       "group": "ppo",
       "provenance": "PAPER_EXACT",
-      "paper_value": {"initial": 0.002, "final": 0.0005, "turnover_iteration": 20000, "schedule": "tanh"},
-      "current_value": {"LEG_GYM_REFERENCE": {"fixed": 0.01}, "PACE_V2_PROFILE": {"initial": 0.002, "final": 0.0005, "turnover_iteration": 20000, "schedule": "tanh", "slope_eta": null}},
+      "paper_value": {
+        "initial": 0.002,
+        "final": 0.0005,
+        "turnover_iteration": 20000,
+        "schedule": "tanh"
+      },
+      "current_value": {
+        "LEG_GYM_REFERENCE": {
+          "fixed": 0.01
+        },
+        "PACE_V2_PROFILE": {
+          "initial": 0.002,
+          "final": 0.0005,
+          "turnover_iteration": 20000,
+          "schedule": "tanh",
+          "slope_eta": null
+        }
+      },
       "implementation_state": "READY_DISABLED",
       "source": "PACE v2 Eq. (21)-(22), Appendix Table 8"
     },
     {
       "id": "ppo.entropy_slope_eta",
       "group": "ppo",
-      "provenance": "UNRESOLVED",
+      "provenance": "PAPER_DERIVED_REPRODUCTION_ASSUMPTION",
       "paper_value": null,
-      "current_value": null,
+      "current_value": 0.00010986122886681098,
       "unit": "per iteration",
-      "implementation_state": "MISSING",
+      "implementation_state": "MATCH",
       "source": "PACE v2 Eq. (22) defines eta but Table 8 does not provide its value",
-      "selection_rule": "不得按 locomotion performance 选择；若来源仍不可得，只允许预注册的 sensitivity experiment。",
+      "selection_rule": "按 epsilon(30000)=0.1 的调度几何唯一确定；不扫描性能。后续敏感性分析单独报告。",
       "blocker_class": "REPRODUCIBILITY",
       "resolution_priority": 4,
       "resolution_policy": "PREREGISTERED_WITH_SENSITIVITY",
       "blocks_validation_training": false,
-      "blocks_formal_training": true
+      "blocks_formal_training": false,
+      "paper_exact": false,
+      "performance_based_selection": false,
+      "resolution_status": "RESOLVED_BY_PREREGISTERED_ASSUMPTION",
+      "decision": "provenance/gpt-Stage1-PACEv2-熵调度与验证预注册-v1.md"
     },
     {
       "id": "ppo.actor_critic_hidden_dims",
       "group": "ppo",
       "provenance": "PAPER_EXACT",
-      "paper_value": [256, 256, 256, 128],
-      "current_value": {"LEG_GYM_REFERENCE": [512, 256, 128], "PACE_V2_PROFILE": [256, 256, 256, 128]},
+      "paper_value": [
+        256,
+        256,
+        256,
+        128
+      ],
+      "current_value": {
+        "LEG_GYM_REFERENCE": [
+          512,
+          256,
+          128
+        ],
+        "PACE_V2_PROFILE": [
+          256,
+          256,
+          256,
+          128
+        ]
+      },
       "implementation_state": "READY_DISABLED",
       "source": "PACE v2 Appendix Table 8"
     },
@@ -459,7 +648,10 @@
       "group": "ppo",
       "provenance": "PAPER_EXACT",
       "paper_value": 1.5,
-      "current_value": {"LEG_GYM_REFERENCE": 1.0, "PACE_V2_PROFILE": 1.5},
+      "current_value": {
+        "LEG_GYM_REFERENCE": 1.0,
+        "PACE_V2_PROFILE": 1.5
+      },
       "implementation_state": "READY_DISABLED",
       "source": "PACE v2 Appendix Table 8"
     },
@@ -468,7 +660,10 @@
       "group": "ppo",
       "provenance": "PAPER_EXACT",
       "paper_value": 10,
-      "current_value": {"LEG_GYM_REFERENCE": 4, "PACE_V2_PROFILE": 10},
+      "current_value": {
+        "LEG_GYM_REFERENCE": 4,
+        "PACE_V2_PROFILE": 10
+      },
       "implementation_state": "READY_DISABLED",
       "source": "PACE v2 Appendix Table 8"
     },
@@ -552,20 +747,7 @@
       "notes": "仅修正 mesh 坐标转换，不改变 articulation、collision、MDP、PPO 或 checkpoint。"
     }
   ],
-  "formal_freeze_blockers": [
-    "control.eq9_joint_limit_saturation",
-    "control.soft_limit_band_deg",
-    "control.network_output_to_action_offset_mapping",
-    "control.action_output_clipping",
-    "control.default_posture_q0",
-    "observation.fixed_component_scales",
-    "observation.empirical_normalization",
-    "observation.fixed_scale_plus_empirical_normalization_composition",
-    "reward.velocity_tracking_sigma",
-    "reward.only_positive_aggregation",
-    "reward.scale_by_policy_dt",
-    "ppo.entropy_slope_eta"
-  ],
+  "formal_freeze_blockers": [],
   "paper_exact_infrastructure_ready": [
     "control.eq9_joint_limit_saturation",
     "observation.empirical_normalization",
@@ -589,5 +771,354 @@
     "Stage1-PACEv2": "PACE-v2 aligned protocol with energy OFF；项目定义的 Task-only ablation。",
     "Stage2-PACEv2": "与 Stage1-PACEv2 相同协议，启用 PACE energy reward 和 curriculum。",
     "Stage3-PACE-ECO": "与 Stage2 相同协议，仅将 energy reward shaping 替换为 energy constraint。"
+  },
+  "resolution_states": {
+    "RESOLVED_BY_PREREGISTERED_ASSUMPTION": "通过预注册复现假设解决工程协议选择；权威实现数值仍未公开。",
+    "RESOLVED": "通过明确论文语义及实现验证解决。",
+    "RESOLVED_BY_PREREGISTERED_PAPER_RANGE_CHOICE": "论文只给范围，数值通过预注册选择解决；不是论文精确值。"
+  },
+  "action_reconstruction_decision": {
+    "version": "ACTION_RECONSTRUCTION_V1",
+    "spec_version": "PACE_V2_SPEC_V1",
+    "date": "2026-09-07",
+    "status": "RESOLVED_BY_PREREGISTERED_ASSUMPTION",
+    "report": "provenance/gpt-Stage1-PACEv2-动作重建预注册决议-v1.md",
+    "scope": "只预注册动作重建；不代表完整训练协议已冻结或门禁已开放。",
+    "evidence_precedence": [
+      "PAPER_EXACT",
+      "PACE_OFFICIAL_ARTIFACT",
+      "PINNED_BASE_FRAMEWORK",
+      "REPRODUCTION_ASSUMPTION"
+    ],
+    "author_evidence_rule": "作者对论文 locomotion 路径的明确回复可覆盖复现假设；记录原文、日期和适用范围，不把回复重标为论文精确值。",
+    "applies_identically_to": [
+      "Stage1-PACEv2",
+      "Stage2-PACEv2",
+      "Stage3-PACE-ECO"
+    ],
+    "primary": {
+      "joint_order": [
+        "LF_HAA",
+        "LF_HFE",
+        "LF_KFE",
+        "RF_HAA",
+        "RF_HFE",
+        "RF_KFE",
+        "LH_HAA",
+        "LH_HFE",
+        "LH_KFE",
+        "RH_HAA",
+        "RH_HFE",
+        "RH_KFE"
+      ],
+      "q0_rad": [
+        0,
+        0.4,
+        -0.8,
+        0,
+        0.4,
+        -0.8,
+        0,
+        -0.4,
+        0.8,
+        0,
+        -0.4,
+        0.8
+      ],
+      "raw_policy_sample": "Gaussian sample",
+      "clip_actions": 100.0,
+      "action_scale": 0.5,
+      "mapping": "a_t=0.5*clip(raw_policy_sample,-100,100)",
+      "additional_transform": "none",
+      "target_order": [
+        "raw Gaussian sample",
+        "clip(-100,100)",
+        "multiply by 0.5 rad",
+        "add q0",
+        "Eq. (9) target reshape",
+        "PD controller"
+      ]
+    },
+    "selection_reason": "论文给出 q0 和 a_t 语义但未公开数值实现；沿用固定基础框架派生的当前路径以最小化无依据改动，未依据训练性能选择。",
+    "sensitivity_policy": {
+      "primary_selection_by_performance": false,
+      "parameter_sweep_for_primary": false,
+      "historical_clip_minus1_plus1": "仅作 Stage1.1 诊断/敏感性证据，不进入主规范",
+      "future_sensitivity": "必要时单独登记和报告，不用于替换主基线"
+    },
+    "author_override_policy": {
+      "channel": "继续保留作者回复渠道，等待回复不再阻塞这三个动作子项；本决议不发送消息或设置轮询。",
+      "before_first_formal_30k_start": "首次 PACE_V2_FORMAL 30,000 次迭代训练启动前收到明确证据：记录证据，更新规范，重新验证，再冻结新修订。",
+      "after_formal_stage1_2_3_start": "保留 PACE_V2_SPEC_V1 原预注册重建；建立 PACE_V2_SPEC_V2 作者确认配置，禁止静默修改正在使用的协议。",
+      "material_difference": "凡改变动作映射、默认姿态或控制目标的差异默认按重要差异处理；V2 下重新运行完整 Stage1/2/3。",
+      "non_material_difference": "明确记录不影响训练语义的判断依据，作为敏感性或局限性报告；不得按性能决定版本归属。"
+    },
+    "remaining_training_gates": "保持关闭；Eq. (9) 接线等其他阻塞项独立处理。"
+  },
+  "observation_normalization_audit": {
+    "date": "2026-09-07",
+    "report": "provenance/gpt-Stage1-PACEv2-观测归一化只读审计.md",
+    "status": "AUDITED_PACE_LOCOMOTION_VERSION_UNRESOLVED",
+    "runtime_changed": false,
+    "gate_effect": "NONE",
+    "semantic_questions": [
+      "observation.component_scaling",
+      "observation.noise_and_scaling_order",
+      "observation.empirical_normalization_semantics"
+    ],
+    "sources": {
+      "rsl_rl_v1_0_2": {
+        "commit": "2ad79cf0caa85b91721abfe358105f869a784121",
+        "scope": "本项目固定基础框架；不是已确认 PACE 训练版本"
+      },
+      "rsl_rl_v2_2_4": {
+        "commit": "f80d4750fbdfb62cfdb0c362b7063450f427cf35",
+        "scope": "官方框架对照，不是 PACE 运动策略证据"
+      },
+      "rsl_rl_v3_0_1": {
+        "commit": "2fc1f78bc1d796ffa8f07ce6b09898227db284bb",
+        "scope": "公开 PACE 脚本最低版本对应的框架对照；不是论文版本锁定"
+      },
+      "rsl_rl_main_snapshot": {
+        "commit": "00e13d1aa49b398ae512f1765297f7ab8c50ca07",
+        "scope": "只说明当前接口可能变化，不用于反推论文"
+      }
+    },
+    "pace_public_scope": "公开脚本最低版本 >=3.0.1；示例网络 [32,32]、cartpole_direct、150 iterations，不等同论文运动训练。",
+    "history_limit": "已检查固定公开提交和已有论文源文件；扩展历史检索遇到部分克隆缺失对象及本地代理隧道不可用，未完成全历史归一化审计。",
+    "implementation_details": [
+      {
+        "id": "observation.empirical_norm_epsilon",
+        "tracked_by": "observation.empirical_normalization_semantics",
+        "pace_status": "UNRESOLVED",
+        "paper_exact": false,
+        "current_implementation": "sqrt(var+1e-8)",
+        "framework_evidence": "v2.2.4/v3.0.1: std+1e-2；数值及加法位置均不同",
+        "framework_evidence_class": "PUBLIC_CODE_CONTEXT_ONLY"
+      },
+      {
+        "id": "observation.empirical_norm_output_clip",
+        "tracked_by": "observation.empirical_normalization_semantics",
+        "pace_status": "UNRESOLVED",
+        "paper_exact": false,
+        "current_implementation": "±100",
+        "framework_evidence": "v2.2.4/v3.0.1: 无归一化输出裁剪；不得与环境裁剪混淆",
+        "framework_evidence_class": "PUBLIC_CODE_CONTEXT_ONLY"
+      },
+      {
+        "id": "observation.empirical_norm_update_timing",
+        "tracked_by": "observation.empirical_normalization_semantics",
+        "pace_status": "UNRESOLVED",
+        "paper_exact": false,
+        "current_implementation": "显式 update=True，先更新后归一化；eval() 不阻止显式更新",
+        "framework_evidence": "v2.2.4: 训练模式 forward 更新；v3.0.1: PPO.process_env_step 显式更新，forward 只读",
+        "framework_evidence_class": "PUBLIC_CODE_CONTEXT_ONLY"
+      },
+      {
+        "id": "observation.actor_critic_norm_independence",
+        "tracked_by": "observation.empirical_normalization_semantics",
+        "pace_status": "UNRESOLVED",
+        "paper_exact": false,
+        "current_implementation": "两个独立组件，48/353 维",
+        "framework_evidence": "两个官方对照版本均为独立统计；不是 PACE 直接证据",
+        "framework_evidence_class": "PUBLIC_CODE_CONTEXT_ONLY"
+      },
+      {
+        "id": "observation.normalizer_checkpoint_restore",
+        "tracked_by": "observation.empirical_normalization_semantics",
+        "pace_status": "UNRESOLVED",
+        "paper_exact": false,
+        "current_implementation": "自建 checkpoint 子字典含统计与配置；未接入实际 runner",
+        "framework_evidence": "v2.2.4: 独立 obs_norm_state_dict/critic_obs_norm_state_dict；v3.0.1: 作为模型子模块随 model_state_dict 恢复",
+        "framework_evidence_class": "PUBLIC_CODE_CONTEXT_ONLY"
+      },
+      {
+        "id": "observation.empirical_norm_until",
+        "tracked_by": "observation.empirical_normalization_semantics",
+        "pace_status": "UNRESOLVED",
+        "paper_exact": false,
+        "current_implementation": "无停止阈值",
+        "framework_evidence": "v2.2.4 runner: 1e8 samples；v3.0.1 ActorCritic: 默认 None",
+        "framework_evidence_class": "PUBLIC_CODE_CONTEXT_ONLY"
+      },
+      {
+        "id": "observation.empirical_norm_initial_observation_and_storage",
+        "tracked_by": "observation.empirical_normalization_semantics",
+        "pace_status": "UNRESOLVED",
+        "paper_exact": false,
+        "current_implementation": "实际 runner 接线缺失",
+        "framework_evidence": "v2.2.4 learn 初始 obs 未先归一化，之后存已归一化 obs；v3.0.1 模型每次前向归一化，缓存环境 obs",
+        "framework_evidence_class": "PUBLIC_CODE_CONTEXT_ONLY"
+      }
+    ],
+    "subsequent_decision": "provenance/gpt-Stage1-PACEv2-观测归一化重建预注册-v1.md"
+  },
+  "observation_normalization_reconstruction": {
+    "id": "OBSERVATION_NORMALIZATION_RECONSTRUCTION_V1",
+    "spec_version": "PACE_V2_SPEC_V1",
+    "date": "2026-09-07",
+    "report": "provenance/gpt-Stage1-PACEv2-观测归一化重建预注册-v1.md",
+    "status": "IMPLEMENTED_AND_COMPONENT_VALIDATED",
+    "paper_exact": false,
+    "selection_basis": "official PACE artifact compatibility",
+    "performance_based_selection": "forbidden",
+    "ppo_core": {
+      "version": "rsl_rl v1.0.2",
+      "changed": false
+    },
+    "compatibility_target": {
+      "version": "rsl_rl v3.0.1",
+      "commit": "2fc1f78bc1d796ffa8f07ce6b09898227db284bb",
+      "scope": "normalizer arithmetic and model-input normalization; not complete PPO/runner migration"
+    },
+    "fixed_scales": "preserve STAGE1_CONFIG.observation.scales",
+    "actor_noise_half_ranges_by_component": [
+      0.2,
+      0.05,
+      0.05,
+      0.0,
+      0.01,
+      0.075,
+      0.0
+    ],
+    "noise_units": "after fixed component scaling; independent uniform; amplitudes are reproduction assumptions, not PACE exact",
+    "environment_clip": 100.0,
+    "normalizer_epsilon": 0.01,
+    "normalizer_denominator": "std+epsilon",
+    "normalizer_output_clip": null,
+    "until": null,
+    "statistics": {
+      "independence": "actor 48D and critic 353D separate",
+      "initial_mean": 0,
+      "initial_variance": 1,
+      "initial_std": 1,
+      "initial_count": 0,
+      "count_dtype": "int64",
+      "update": "once per newly returned environment tensor batch; explicit update in train mode only",
+      "forward": "read-only in all modes",
+      "initial_observation": "update once before first network call; preregistered startup deviation from native v3.0.1",
+      "storage": "environment observations, normalized during each network forward",
+      "minibatch_and_terminal_value": "no statistics update",
+      "inference": "eval mode freezes explicit updates too"
+    },
+    "checkpoint": {
+      "model": "actor/critic parameters plus both sets of mean,var,std,count buffers",
+      "optimizer": "v1.0.2 optimizer state and adaptive learning_rate restored",
+      "metadata": "spec id, dimensions, epsilon, no output clip, until=None",
+      "missing_statistics": "reject",
+      "legacy_engine_checkpoint": "reject",
+      "fresh_process_closure": [
+        "normalized_actor_obs",
+        "normalized_critic_obs",
+        "deterministic_action",
+        "critic_value"
+      ],
+      "closure_result": "bitwise equal on CPU synthetic observations; optimizer and model states also equal",
+      "not_claimed": "simulator/RNG/full future trajectory restoration"
+    },
+    "entry_points": {
+      "environment": "pace_stage1.pace_v2_env.PaceV2ValidationEnv",
+      "runner": "pace_stage1.normalization_bridge.PaceV2ValidationRunner",
+      "training_gate": "当前允许 V0/V1 短程验证；正式训练关闭。归一化预注册时门禁关闭，后由熵调度预注册完成入口审查。"
+    },
+    "author_override_policy": "inherits ACTION_RECONSTRUCTION_V1 before-start override and after-start version separation"
+  },
+  "reward_semantics_reconstruction": {
+    "id": "REWARD_SEMANTICS_RECONSTRUCTION_V1",
+    "date": "2026-09-07",
+    "report": "provenance/gpt-Stage1-PACEv2-奖励语义预注册-v1.md",
+    "status": "IMPLEMENTED_AND_COMPONENT_VALIDATED",
+    "paper_exact": false,
+    "primary": {
+      "tracking_sigma": 0.25,
+      "only_positive_rewards": false,
+      "scale_by_policy_dt": true,
+      "policy_dt_s": 0.01,
+      "stage1_equation": "0.01*(0.2*r_v-r_c-0.1*kappa*r_ftd)",
+      "termination_scale": 0.0,
+      "energy_enabled": false
+    },
+    "selection_policy": "source-based preregistration; no performance-based selection",
+    "applies_to": "Stage1/2/3 task reward semantics; stage2 energy units and stage3 costs are separate stage work",
+    "legacy_default_changed": false,
+    "validation_result": "sigma denominator, negative collision reward, FTD half-life and uniform dt component checks passed",
+    "gate_effect": "semantic blocker count 3 -> 0; validation/formal declared gates remain false"
+  },
+  "entropy_validation_reconstruction": {
+    "id": "ENTROPY_VALIDATION_RECONSTRUCTION_V1",
+    "date": "2026-09-07",
+    "report": "provenance/gpt-Stage1-PACEv2-熵调度与验证预注册-v1.md",
+    "classification": "REPRODUCTION_ASSUMPTION",
+    "paper_exact": false,
+    "performance_based_selection": false,
+    "slope_eta": 0.00010986122886681098,
+    "selection_basis": "令训练结束边界 30000 时 epsilon=0.1；不依据运动表现选值",
+    "iteration_semantics": "0-based PPO update; checkpoint iter is next update; last_iteration=iter-1",
+    "static_validation": "33 PACE v2 tests and 9 normalization tests passed",
+    "validation_training_allowed": true,
+    "formal_training_allowed": false,
+    "v0_result": "64 envs, seed 123, 10 updates; protocol PASS; GPU restored outputs bitwise equal",
+    "v1_result": "PASS: 4096 envs, seed 0, plane, 300 updates on GPU 2 V100; all runtime protocol checks passed; restored GPU outputs bitwise equal; next iteration 300",
+    "execution_report": "provenance/gpt-Stage1-PACEv2-验证入口与短训审查.md",
+    "health_result": "tracking improved and std decreased; local raw-action peak 14.811 and policy-mean peak 14.000 retained as limitations; no formal approval",
+    "artifacts": "artifacts/validation/gpt-pace-v2-20260907"
+  },
+  "formal_entry_review": {
+    "date": "2026-09-08",
+    "report": "provenance/gpt-Stage1-PACEv2-正式训练入口审查.md",
+    "entry": "pace_stage1.pace_v2_formal",
+    "status": "APPROVED",
+    "mixed_terrain_smoke": "64 envs, seed 123, 10 updates; protocol PASS, restored outputs bitwise equal",
+    "gate_test": "formal launch rejected before output directory creation",
+    "formal_training_started": true,
+    "decision": "provenance/gpt-Stage1-PACEv2-正式训练入口决议-v1.md",
+    "run_dir": "artifacts/ppo/gpt-pace-v2-formal-stage1-seed0",
+    "training_session": "gpt-pace-v2-formal-stage1",
+    "evaluation_session": "gpt-pace-v2-milestone-eval",
+    "engineering_interruption": "provenance/gpt-Stage1-PACEv2-检查点工程中断记录.md"
+  },
+  "final_scientific_evaluation": {
+    "status": "COMPLETED",
+    "execution_root": "artifacts/final-evaluation/gpt-stage1-pace-v2-v1-r2",
+    "scientific_report": "artifacts/final-evaluation/gpt-stage1-pace-v2-v1-r2/gpt-最终报告/gpt-Stage1-PACEv2-最终科学评估报告.md",
+    "result_classification": "B",
+    "report": "provenance/gpt-Stage1-PACEv2-最终评估协议-v1.md",
+    "spec": "provenance/gpt-Stage1-PACEv2-最终评估协议-v1.json",
+    "case_plan": "provenance/gpt-Stage1-PACEv2-最终评估样本计划-v1.csv",
+    "milestone_evaluation": "DIAGNOSTIC_ONLY",
+    "stage2": "APPROVED_BY_SEPARATE_STAGE2_DECISION",
+    "performance_logs_consulted_for_preregistration": false
+  },
+  "stage2_execution": {
+    "status": "COMPLETED_WITH_TRAINING_PHYSICS_VALIDITY_CONCERN",
+    "training_native_log_audit": "provenance/gpt-Stage2-训练完成与原生警告审计.md",
+    "physics_capacity_diagnosis": "provenance/gpt-Stage2-物理容量排查结果.md",
+    "physics_capacity_diagnosis_status": "COMPLETED; candidate passed bounded 2000-step stress and 600-step V100 confirmation",
+    "candidate_construction_repair": {"separate_construction_only": true, "max_gpu_contact_pairs": 33554432, "default_buffer_size_multiplier": 5.0},
+    "stage1_shared_initialization_risk": "NOT_EXCLUDED; same creation methods in saved source snapshots",
+    "capacity_repaired_formal_rerun": "COMPLETED_BOTH_30000; native supervisors exited 0 without detected native errors",
+    "capacity_repaired_final_evaluation": {
+      "status_at_launch": "RUNNING",
+      "status": "COMPLETED",
+      "completion_note": "Both 29376-case evaluations and 48-video checks complete; report dependency recovered using the existing analysis environment; no simulation rerun",
+      "behavior_review": "provenance/gpt-容量修复后困难地形与步态审阅.md",
+      "behavior_review_status": "COMPLETED; 28800 paired cases, 12 fixed video timelines inspected, 12 fixed gait replays audited; descriptive only",
+      "live_status": "artifacts/final-evaluation/gpt-容量修复成对评估-v1/gpt-评估总体进度.json",
+      "execution_record": "provenance/gpt-物理容量修复后成对最终评估执行记录.md",
+      "stage1_root": "artifacts/final-evaluation/gpt-stage1-pace-v2-capacity-r2-v1",
+      "stage2_root": "artifacts/final-evaluation/gpt-stage2-pace-v2-capacity-r2-v1"
+    },
+    "capacity_repaired_execution_record": "provenance/gpt-物理容量修复成对重训执行记录.md",
+    "final_evaluation_status": "COMPLETED_WITH_TRAINING_VALIDITY_CAVEAT",
+    "final_evaluation_report": "artifacts/final-evaluation/gpt-stage2-pace-v2-v1/gpt-最终报告/gpt-Stage2-PACEv2-最终科学评估报告.md",
+    "fixed_gait_report": "artifacts/gait-audit/gpt-stage2-model30000-v1/gpt-Stage2-步态描述性分析报告.md",
+    "decision": "provenance/gpt-Stage2-能耗项正式执行决议-v1.md",
+    "potential_sign": -1,
+    "potential_sign_classification": "USER_APPROVED_TEXT_INTERPRETATION_REPRODUCTION_ASSUMPTION",
+    "potential_sign_paper_exact": false,
+    "energy_scale": -0.00016,
+    "energy_half_life_iterations": 500,
+    "initialization": "fresh seed0, no Stage1 warm start",
+    "run_root": "artifacts/ppo/gpt-pace-v2-formal-stage2-seed0"
   }
 }

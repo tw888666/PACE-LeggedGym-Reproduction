@@ -13,10 +13,11 @@ class RunningMeanVarianceNormalizerTest(unittest.TestCase):
     def test_running_moments_and_normalized_values(self):
         normalizer = RunningMeanVarianceNormalizer(2)
         observations = torch.tensor([[1.0, 2.0], [3.0, 6.0]])
-        actual = normalizer(observations, update=True)
+        normalizer.update(observations)
+        actual = normalizer(observations)
         torch.testing.assert_close(normalizer.running_mean, torch.tensor([2.0, 4.0]))
         torch.testing.assert_close(normalizer.running_variance, torch.tensor([1.0, 4.0]))
-        torch.testing.assert_close(actual, torch.tensor([[-1.0, -1.0], [1.0, 1.0]]))
+        torch.testing.assert_close(actual, torch.tensor([[-1/1.01, -2/2.01], [1/1.01, 2/2.01]]))
         self.assertEqual(normalizer.sample_count.item(), 2.0)
 
     def test_batched_updates_match_single_update(self):
@@ -60,11 +61,11 @@ class RunningMeanVarianceNormalizerTest(unittest.TestCase):
             ActorCriticEmpiricalNormalizers(2, 3).load_from_checkpoint({})
 
     def test_checkpoint_config_mismatch_fails_closed(self):
-        source = ActorCriticEmpiricalNormalizers(2, 3, clip=10.0)
+        source = ActorCriticEmpiricalNormalizers(2, 3, epsilon=0.01)
         checkpoint = {}
         source.add_to_checkpoint(checkpoint)
         with self.assertRaises(RuntimeError):
-            ActorCriticEmpiricalNormalizers(2, 3, clip=20.0).load_from_checkpoint(
+            ActorCriticEmpiricalNormalizers(2, 3, epsilon=0.02).load_from_checkpoint(
                 checkpoint
             )
 

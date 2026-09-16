@@ -18,7 +18,7 @@ class PaceV2EntropyScheduleTest(unittest.TestCase):
 
     def test_unresolved_eta_refuses_evaluation(self):
         with self.assertRaises(RuntimeError):
-            pace_v2_entropy_coefficient(0, PaceV2EntropyConfig())
+            pace_v2_entropy_coefficient(0, PaceV2EntropyConfig(slope_eta=None))
 
     def test_initial_turnover_final_and_monotonicity(self):
         at_start = pace_v2_entropy_coefficient(0, self.config)

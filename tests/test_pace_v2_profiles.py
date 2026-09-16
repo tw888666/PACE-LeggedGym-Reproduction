@@ -39,26 +39,24 @@ class PaceV2ProfileTest(unittest.TestCase):
         self.assertEqual(profile.ppo.entropy.initial, 0.002)
         self.assertEqual(profile.ppo.entropy.final, 0.0005)
         self.assertEqual(profile.ppo.entropy.turnover_iteration, 20_000)
-        self.assertIsNone(profile.ppo.entropy.slope_eta)
-        self.assertFalse(profile.allows_short_validation)
+        self.assertGreater(profile.ppo.entropy.slope_eta, 0)
+        self.assertTrue(profile.allows_short_validation)
         self.assertFalse(profile.allows_formal_training)
         self.assertEqual(
             set(profile.unresolved_parameters),
             set(formal_training_status().blocking_items),
         )
 
-    def test_current_matrix_blocks_formal_profile(self):
+    def test_current_matrix_allows_formal_profile_after_approval(self):
         status = formal_training_status()
-        self.assertFalse(status.allowed)
-        self.assertFalse(status.validation_allowed)
-        self.assertEqual(len(status.semantic_blockers), 11)
-        self.assertEqual(status.reproducibility_blockers, ("ppo.entropy_slope_eta",))
+        self.assertTrue(status.allowed)
+        self.assertTrue(status.validation_allowed)
+        self.assertEqual(len(status.semantic_blockers), 0)
+        self.assertEqual(status.reproducibility_blockers, ())
         self.assertEqual(status.formal_reporting_blockers, ())
-        self.assertTrue(status.blocking_items)
-        with self.assertRaises(RuntimeError):
-            pace_v2_formal_profile()
-        with self.assertRaises(RuntimeError):
-            require_validation_training_allowed()
+        self.assertEqual(status.blocking_items, ())
+        self.assertTrue(pace_v2_formal_profile().allows_formal_training)
+        self.assertTrue(require_validation_training_allowed().validation_allowed)
 
     def test_validation_can_open_after_only_semantic_blockers_are_resolved(self):
         payload = json.loads(DEFAULT_PROTOCOL_MATRIX_PATH.read_text(encoding="utf-8"))
@@ -71,6 +69,7 @@ class PaceV2ProfileTest(unittest.TestCase):
                 remaining_formal_blockers.append(entry["id"])
         payload["formal_freeze_blockers"] = remaining_formal_blockers
         payload["baseline"]["validation_training_allowed"] = True
+        payload["baseline"]["formal_training_allowed"] = False
         with tempfile.TemporaryDirectory() as directory:
             path = Path(directory) / "matrix.json"
             path.write_text(json.dumps(payload), encoding="utf-8")
@@ -79,7 +78,7 @@ class PaceV2ProfileTest(unittest.TestCase):
             self.assertFalse(status.allowed)
             self.assertEqual(status.semantic_blockers, ())
             self.assertEqual(
-                status.reproducibility_blockers, ("ppo.entropy_slope_eta",)
+                status.reproducibility_blockers, ()
             )
             self.assertTrue(
                 pace_v2_validation_profile(250, path).allows_short_validation
@@ -97,7 +96,7 @@ class PaceV2ProfileTest(unittest.TestCase):
             with self.assertRaises(RuntimeError):
                 require_formal_training_allowed(path)
 
-    def test_formal_profile_also_rejects_unresolved_eta_after_matrix_approval(self):
+    def test_formal_profile_requires_separate_explicit_approval(self):
         payload = json.loads(DEFAULT_PROTOCOL_MATRIX_PATH.read_text(encoding="utf-8"))
         for entry in payload["matrix"]:
             entry.pop("blocks_formal_training", None)
@@ -106,8 +105,7 @@ class PaceV2ProfileTest(unittest.TestCase):
         with tempfile.TemporaryDirectory() as directory:
             path = Path(directory) / "matrix.json"
             path.write_text(json.dumps(payload), encoding="utf-8")
-            with self.assertRaisesRegex(RuntimeError, "entropy slope eta is None"):
-                pace_v2_formal_profile(path)
+            self.assertTrue(pace_v2_formal_profile(path).allows_formal_training)
 
 
 if __name__ == "__main__":

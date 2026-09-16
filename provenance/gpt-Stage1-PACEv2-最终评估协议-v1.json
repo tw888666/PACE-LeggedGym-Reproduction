@@ -1,0 +1,235 @@
+{
+  "id": "STAGE1_PACE_V2_FINAL_EVALUATION_V1",
+  "date": "2026-09-08",
+  "status": "PREREGISTERED_NOT_EXECUTED",
+  "selection_basis": "在不读取当前长训性能日志的情况下，按地形和指令覆盖预先指定；非论文精确评估设置",
+  "training_protocol_modified": false,
+  "additional_validation_training": false,
+  "checkpoint": {
+    "stage1": "gpt-model-30000.pt",
+    "selection": "仅最终 30000 次更新；禁止最佳检查点选择",
+    "stage2_stage3": "相同最终更新预算、评估计划和随机种子；算法特有状态不进入 actor 推理"
+  },
+  "policy": {
+    "action": "deterministic actor mean",
+    "normalization": "加载两组完整统计，eval 模式，禁止更新",
+    "reported_std": "检查点 Gaussian std，仅描述训练分布；确定性评估不采样该噪声"
+  },
+  "seeds": [
+    200000,
+    200001,
+    200002
+  ],
+  "terrains": [
+    {
+      "id": "smooth_slope",
+      "source_columns": [
+        0,
+        1
+      ]
+    },
+    {
+      "id": "rough_slope",
+      "source_columns": [
+        2
+      ]
+    },
+    {
+      "id": "stairs_negative_step",
+      "source_columns": [
+        4
+      ]
+    },
+    {
+      "id": "stairs_positive_step",
+      "source_columns": [
+        11
+      ]
+    },
+    {
+      "id": "boxes",
+      "source_columns": [
+        16
+      ]
+    }
+  ],
+  "difficulty_rows": [
+    0,
+    1,
+    2,
+    3,
+    4,
+    5,
+    6,
+    7,
+    8,
+    9
+  ],
+  "difficulty_formula": "row/10",
+  "flat_reference": {
+    "mode": "plane",
+    "difficulty_row": null,
+    "included_in_primary_macro": false
+  },
+  "commands": {
+    "standing": [
+      [
+        0,
+        0,
+        0
+      ]
+    ],
+    "low_speed": [
+      [
+        0.25,
+        0,
+        0
+      ],
+      [
+        -0.25,
+        0,
+        0
+      ],
+      [
+        0,
+        0.25,
+        0.25
+      ],
+      [
+        0,
+        -0.25,
+        -0.25
+      ]
+    ],
+    "normal_motion": [
+      [
+        0.75,
+        0,
+        0
+      ],
+      [
+        -0.75,
+        0,
+        0
+      ],
+      [
+        0,
+        0.75,
+        0.5
+      ],
+      [
+        0,
+        -0.75,
+        -0.5
+      ]
+    ]
+  },
+  "command_semantics": "vx/vy 为机体坐标 m/s；第三项为直接 yaw-rate rad/s；整回合恒定，评估关闭 heading 转换与指令重采样",
+  "episodes_per_terrain_difficulty_command_bin_seed": 64,
+  "primary_episode_count": 28800,
+  "flat_reference_episode_count": 576,
+  "episode": {
+    "maximum_policy_steps": 2001,
+    "policy_dt_s": 0.01,
+    "duration_s": 20.01,
+    "unit": "每个计划 case 从重置到第一次 done；无热身排除、无自动重置后样本",
+    "early_failure": "记录首个终止，计失败，后续数据不进入该 case",
+    "timeout_and_contact_same_step": "接触失败优先，不计 survival"
+  },
+  "environment": {
+    "terrain_curriculum": false,
+    "terrain_layout": "每个条件使用源生成器对应 row/column 的原始 tile，平铺同类同难度；记录越块率，不混入其他类型/等级",
+    "noise_friction_reset_pushes": "保留冻结训练环境设置；禁止为评估关闭噪声、摩擦随机化、初态随机化和推扰",
+    "randomness": "按 seed/case_id/step/stream 生成独立固定随机输入；Stage1/2/3 复用；不由提前终止或并行批大小改变其他 case 的随机流",
+    "push": "按每个 case 的时钟在 15 秒触发；方向和幅度使用固定随机流"
+  },
+  "metrics": {
+    "task": [
+      "episode_velocity_rmse_m_s",
+      "episode_yaw_rmse_rad_s",
+      "survival",
+      "joint_task_success",
+      "episode_duration_s"
+    ],
+    "joint_task_success": {
+      "survive_required": true,
+      "velocity_rmse_le": 0.3,
+      "yaw_rmse_le": 0.3,
+      "classification": "项目预注册操作性阈值，不是 PACE 作者阈值"
+    },
+    "action": [
+      "mean_abs_mu",
+      "checkpoint_std_per_joint",
+      "abs_raw_p95",
+      "abs_raw_p99",
+      "abs_raw_p999",
+      "abs_raw_p9999",
+      "prob_abs_raw_gt_2",
+      "prob_abs_raw_gt_5",
+      "prob_abs_raw_gt_10",
+      "raw_max_auxiliary"
+    ],
+    "control": [
+      "saturation_per_joint_and_global",
+      "eq9_activation",
+      "hard_limit_exceedance",
+      "q_target_raw_and_safe_range"
+    ],
+    "energy": [
+      "electrical_0p0192_sum_tau_squared_W",
+      "mechanical_signed_net_W",
+      "mechanical_positive_net_W",
+      "electrical_plus_positive_net_W",
+      "episode_integrals_J"
+    ],
+    "energy_objective": "OFF；诊断功率和不冒充包含势能项的完整 PACE 能耗指标",
+    "aggregation": "先按 case 求任务与时均指标，再在 seed/command-bin/difficulty/terrain 内等权；主总数是五类型×十难度×三指令层的等权 macro；平地另报",
+    "tail_aggregation": "各分层内合并存活时间内原始动作标量计算精确分位数和比例，明确 scalar_count；另报 case 等权 exceedance；不得平均分位数代替合并分位数",
+    "uncertainty": "逐种子列出结果；分层内 case 重采样 2000 次 bootstrap，seed 910001，95% percentile CI；只表征评估随机性，不代表训练种子不确定性"
+  },
+  "video": {
+    "gpu": [
+      0,
+      1
+    ],
+    "case_selection": "每类地形 row 2/5/8 × 三指令层，seed 200000、replicate 0，加平地三指令层；共 48 段",
+    "duration": "到第一次终止或 20.01 秒；失败片段保留",
+    "policy": "deterministic mean",
+    "fps": 25,
+    "selection": "不按表现挑选、替换或删去；不能渲染时记录缺失，不用另一 case 顶替"
+  },
+  "decision": {
+    "task_adequate": "主 macro joint_task_success >=0.80 且 macro survival >=0.90；操作性项目分类，必须同时展示全部分层，不能据此删掉困难地形",
+    "control": "不设动作或饱和的硬 PASS 阈值；连续报告。A/B 作为描述性控制行为标签，不作重新训练或推进门禁",
+    "A": "任务达到操作性标准，视频及分布未显示明显激进控制特征",
+    "B": "任务达到操作性标准，但尾部、饱和或视频仍显示激进控制；保留结果",
+    "C": "任务未达到预注册操作性标准；保留 energy-off ablation 结果，不据此调参",
+    "stage2": "Stage1 30000 完成、最终评估与视频报告完成且无未解决工程错误后，形成 Stage2 独立执行决议；A/B/C 均不触发 Stage1 重调。C 情况将 Stage2 明确标为能耗项能否补足 task-only 的检验，不声称已有稳定基线",
+    "stage3": "复用该评估定义；Stage2/3 的训练启动不由本评估文档自动授权"
+  },
+  "trend_windows": [
+    [
+      0,
+      5000
+    ],
+    [
+      15000,
+      20000
+    ],
+    [
+      20000,
+      25000
+    ],
+    [
+      25000,
+      30000
+    ]
+  ],
+  "trend_series": [
+    "policy_std",
+    "prob_abs_raw_gt_5",
+    "torque_saturation",
+    "training_completed_episode_velocity_rmse"
+  ],
+  "version_policy": "修复仅限评估实现偏离本规范；记录原因和影响，对 Stage1/2/3 一致应用。指标、阈值或样本计划变更另列 V2，保留 V1；不根据结果更换 primary。"
+}

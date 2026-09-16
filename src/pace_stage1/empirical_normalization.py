@@ -1,4 +1,4 @@
-"""Separate actor/critic empirical normalizers with checkpointable statistics."""
+"""PACE-v2 compatibility with the preregistered RSL-RL 3.0.1 normalizer."""
 
 from __future__ import annotations
 
@@ -7,76 +7,41 @@ from typing import Dict
 import torch
 from torch import nn
 
+from ._rsl_rl_normalization_v3_0_1 import EmpiricalNormalization
 
-class RunningMeanVarianceNormalizer(nn.Module):
-    """Normalize the final tensor dimension using population running moments."""
 
-    def __init__(self, dimension: int, epsilon: float = 1.0e-8, clip: float = 100.0):
-        super().__init__()
-        if dimension <= 0:
-            raise ValueError("normalizer dimension must be positive")
-        if epsilon <= 0 or clip <= 0:
-            raise ValueError("normalizer epsilon and clip must be positive")
+OBSERVATION_NORMALIZATION_SPEC = "OBSERVATION_NORMALIZATION_RECONSTRUCTION_V1"
+
+
+class RunningMeanVarianceNormalizer(EmpiricalNormalization):
+    """Dimension-aware facade; arithmetic and buffers come from upstream 3.0.1."""
+
+    def __init__(self, dimension: int, epsilon: float = 1.0e-2):
+        if dimension <= 0 or epsilon <= 0:
+            raise ValueError("dimension and epsilon must be positive")
+        super().__init__(dimension, eps=epsilon, until=None)
         self.dimension = int(dimension)
         self.epsilon = float(epsilon)
-        self.clip = float(clip)
-        self.register_buffer("running_mean", torch.zeros(self.dimension))
-        self.register_buffer("running_variance", torch.ones(self.dimension))
-        self.register_buffer("sample_count", torch.zeros((), dtype=torch.float64))
 
     @torch.no_grad()
     def update(self, observations: torch.Tensor) -> None:
-        self._validate_observations(observations)
-        flattened = observations.detach().reshape(-1, self.dimension)
-        if flattened.shape[0] == 0:
+        if observations.ndim != 2 or observations.shape[1] != self.dimension:
+            raise ValueError("observations must have shape [batch, dimension]")
+        if observations.shape[0] == 0:
             return
-        batch = flattened.to(
-            device=self.running_mean.device, dtype=self.running_mean.dtype
-        )
-        batch_count = float(batch.shape[0])
-        batch_mean = batch.mean(dim=0)
-        batch_variance = batch.var(dim=0, unbiased=False)
-        old_count = float(self.sample_count.item())
-        if old_count == 0.0:
-            self.running_mean.copy_(batch_mean)
-            self.running_variance.copy_(batch_variance)
-            self.sample_count.fill_(batch_count)
-            return
+        super().update(observations.detach().to(self._mean))
 
-        total_count = old_count + batch_count
-        delta = batch_mean - self.running_mean
-        combined_mean = self.running_mean + delta * (batch_count / total_count)
-        old_second_moment = self.running_variance * old_count
-        batch_second_moment = batch_variance * batch_count
-        correction = delta.square() * (old_count * batch_count / total_count)
-        combined_variance = (
-            old_second_moment + batch_second_moment + correction
-        ) / total_count
-        self.running_mean.copy_(combined_mean)
-        self.running_variance.copy_(combined_variance)
-        self.sample_count.fill_(total_count)
+    @property
+    def running_mean(self):
+        return self._mean.squeeze(0)
 
-    def forward(self, observations: torch.Tensor, update: bool = False) -> torch.Tensor:
-        self._validate_observations(observations)
-        if update:
-            self.update(observations)
-        mean = self.running_mean.to(device=observations.device, dtype=observations.dtype)
-        variance = self.running_variance.to(
-            device=observations.device, dtype=observations.dtype
-        )
-        normalized = (observations - mean) / torch.sqrt(variance + self.epsilon)
-        return torch.clamp(normalized, -self.clip, self.clip)
+    @property
+    def running_variance(self):
+        return self._var.squeeze(0)
 
-    def _validate_observations(self, observations: torch.Tensor) -> None:
-        if not torch.is_floating_point(observations):
-            raise TypeError("normalizer observations must be floating-point tensors")
-        if observations.ndim < 1 or observations.shape[-1] != self.dimension:
-            raise ValueError(
-                f"expected observation final dimension {self.dimension}, "
-                f"got {tuple(observations.shape)}"
-            )
-        if not torch.isfinite(observations).all():
-            raise ValueError("normalizer observations must be finite")
+    @property
+    def sample_count(self):
+        return self.count
 
 
 class ActorCriticEmpiricalNormalizers(nn.Module):
@@ -88,28 +53,31 @@ class ActorCriticEmpiricalNormalizers(nn.Module):
         self,
         actor_dimension: int,
         critic_dimension: int,
-        epsilon: float = 1.0e-8,
-        clip: float = 100.0,
+        epsilon: float = 1.0e-2,
     ):
         super().__init__()
-        self.actor = RunningMeanVarianceNormalizer(actor_dimension, epsilon, clip)
-        self.critic = RunningMeanVarianceNormalizer(critic_dimension, epsilon, clip)
+        self.actor = RunningMeanVarianceNormalizer(actor_dimension, epsilon)
+        self.critic = RunningMeanVarianceNormalizer(critic_dimension, epsilon)
 
     def normalize_actor(
         self, observations: torch.Tensor, update: bool = False
     ) -> torch.Tensor:
-        return self.actor(observations, update=update)
+        if update:
+            self.actor.update(observations)
+        return self.actor(observations)
 
     def normalize_critic(
         self, observations: torch.Tensor, update: bool = False
     ) -> torch.Tensor:
-        return self.critic(observations, update=update)
+        if update:
+            self.critic.update(observations)
+        return self.critic(observations)
 
     def add_to_checkpoint(self, checkpoint: Dict[str, object]) -> None:
         if self.CHECKPOINT_KEY in checkpoint:
             raise RuntimeError("checkpoint already contains empirical normalizer state")
         checkpoint[self.CHECKPOINT_KEY] = {
-            "schema": "pace_v2_empirical_normalizers.v1",
+            "schema": "pace_v2_empirical_normalizers.rsl301.v1",
             "actor": self._normalizer_metadata(self.actor),
             "critic": self._normalizer_metadata(self.critic),
             "state_dict": {
@@ -122,7 +90,7 @@ class ActorCriticEmpiricalNormalizers(nn.Module):
             raise RuntimeError("checkpoint is missing empirical normalizer state")
         payload = checkpoint[self.CHECKPOINT_KEY]
         if not isinstance(payload, dict) or payload.get("schema") != (
-            "pace_v2_empirical_normalizers.v1"
+            "pace_v2_empirical_normalizers.rsl301.v1"
         ):
             raise RuntimeError("unsupported empirical normalizer checkpoint state")
         if payload.get("actor") != self._normalizer_metadata(self.actor):
@@ -141,5 +109,7 @@ class ActorCriticEmpiricalNormalizers(nn.Module):
         return {
             "dimension": normalizer.dimension,
             "epsilon": normalizer.epsilon,
-            "clip": normalizer.clip,
+            "output_clip": None,
+            "until": None,
+            "spec": OBSERVATION_NORMALIZATION_SPEC,
         }

@@ -1,4 +1,4 @@
-"""PACE v2 action-side control utilities that are disabled by default."""
+"""PACE v2 target control, isolated from the historical target adapter."""
 
 from __future__ import annotations
 
@@ -55,11 +55,37 @@ def pace_v2_hard_limit_safe_target(
         (q_true - upper_soft) / band, min=0.0, max=1.0
     )
     upper_reshaped = q_target - upper_fraction * (q_target - upper)
+    # Enforce the exact endpoint despite rounding in (upper - upper_soft) / band.
+    upper_reshaped = torch.where(q_true >= upper, upper, upper_reshaped)
     upper_active = (q_true >= upper_soft) & (q_target > upper)
 
     lower_fraction = torch.clamp((lower_soft - q_true) / band, min=0.0, max=1.0)
     lower_reshaped = q_target - lower_fraction * (q_target - lower)
+    lower_reshaped = torch.where(q_true <= lower, lower, lower_reshaped)
     lower_active = (q_true <= lower_soft) & (q_target < lower)
 
     safe_target = torch.where(upper_active, upper_reshaped, q_target)
     return torch.where(lower_active, lower_reshaped, safe_target)
+
+
+class PaceV2ControlMixin:
+    """Control hooks for PACE v2; usable in component tests without Isaac Gym.
+
+    The environment clips raw actions before constructing a held policy target.
+    Eq. (9) reads the latest true joint state before every actuator/physics step.
+    Encoder bias, torque saturation and FIFO delay remain inside the actuator.
+    """
+
+    def _compute_policy_target(self) -> torch.Tensor:
+        return self.default_dof_pos + self.cfg.action.scale_rad * self.actions
+
+    def _step_actuator(self, target: torch.Tensor):
+        q_true = self.dof_pos
+        safe_target = pace_v2_hard_limit_safe_target(
+            q_true,
+            target,
+            self.lower_limits.expand_as(q_true),
+            self.upper_limits.expand_as(q_true),
+            self.cfg.action.soft_limit_band_rad,
+        )
+        return self.actuator.step(safe_target, q_true, self.dof_vel)
